@@ -197,6 +197,10 @@ def classify_and_estimate(subject: str) -> dict:
     }
     intensity = use_intensity.get(r["use"], 0.16)
 
+    # Agricultural storage/sheds: simple slab-on-grade, metal frame, much less concrete
+    if any(k in s for k in ["ΑΓΡΟΤΙΚ", "ΑΠΟΘΗΚ", "ΣΤΑΣΙΣ", "ΣΤΑΒΛ", "ΘΕΡΜΟΚΗΠ"]):
+        intensity = min(intensity, 0.10)
+
     # ── Calculate ──
     concrete_m3 = est_area * intensity
 
