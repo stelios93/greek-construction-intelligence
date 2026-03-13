@@ -358,20 +358,24 @@ function renderDigest() {
   const months = Object.keys(byMonth).sort();
   const latestMonth = months[months.length - 1];
   const monthData = byMonth[latestMonth] || [];
-  const engCount = {};
+  const engCement = {};
+  const engPermits = {};
   for (const r of monthData) {
     if (!r.eng) continue;
     const key = r.eng + (r.tee ? '|' + r.tee : '');
-    engCount[key] = (engCount[key] || 0) + 1;
+    engCement[key] = (engCement[key] || 0) + r.cem;
+    engPermits[key] = (engPermits[key] || 0) + 1;
   }
-  const topEng = Object.entries(engCount).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const topEng = Object.entries(engCement).sort((a, b) => b[1] - a[1]).slice(0, 10);
   document.getElementById('topEngineers').innerHTML = topEng.map(e => {
     const parts = e[0].split('|');
     const name = parts[0];
     const tee = parts[1] || '';
+    const cem = e[1].toFixed(1);
+    const cnt = engPermits[e[0]];
     return '<div class="te-row"><span><span class="te-name">' + name + '</span>' +
       (tee ? ' <span class="te-tee">TEE ' + tee + '</span>' : '') +
-      '</span><span class="te-count">' + e[1] + ' permits</span></div>';
+      '</span><span class="te-count">' + cem + 't <span style="color:var(--dim)">(' + cnt + ')</span></span></div>';
   }).join('');
 
   // Use breakdown donut
