@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Data (too large for git)
+data/pdf_cache/
+data/*.csv
+data/*.json
+data/titan_demo.html
+
+# OS
+.DS_Store
+*.swp
+
+# IDE
+.vscode/
+.idea/
