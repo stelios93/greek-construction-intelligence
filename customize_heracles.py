@@ -424,7 +424,373 @@ html = html.replace(
 )
 
 # ═══════════════════════════════════════════════════════════════
-#  7. ADD PASSWORD SCREEN
+#  7. ADD LEAD SCORING SYSTEM
+# ═══════════════════════════════════════════════════════════════
+
+lead_css = """
+  /* Lead Score */
+  .score-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-weight: 700; font-size: 0.72rem; min-width: 36px; text-align: center;
+  }
+  .score-hot { background: rgba(239,68,68,0.2); color: #ef4444; }
+  .score-warm { background: rgba(245,158,11,0.2); color: #f59e0b; }
+  .score-cool { background: rgba(59,130,246,0.2); color: #3b82f6; }
+  .score-cold { background: rgba(100,116,139,0.2); color: #94a3b8; }
+
+  /* Config panel */
+  #scoringPanel {
+    display: none; position: fixed; top: 0; right: 0; width: 420px; height: 100%;
+    background: var(--card); border-left: 1px solid var(--border);
+    z-index: 900; overflow-y: auto; padding: 1.5rem;
+    box-shadow: -10px 0 30px rgba(0,0,0,0.4);
+    transition: transform 0.3s ease;
+  }
+  #scoringPanel.open { display: block; }
+  #scoringPanel h3 { font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--cyan); }
+  #scoringPanel .panel-section {
+    background: var(--card2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 1rem; margin-bottom: 1rem;
+  }
+  #scoringPanel .panel-section h4 {
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--dim); margin-bottom: 0.75rem;
+  }
+  .slider-row {
+    display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;
+    font-size: 0.78rem;
+  }
+  .slider-row label { min-width: 100px; color: var(--muted); }
+  .slider-row input[type=range] {
+    flex: 1; accent-color: var(--cyan); height: 4px; cursor: pointer;
+  }
+  .slider-row .sv { min-width: 35px; text-align: right; font-weight: 700; color: var(--text); }
+  .toggle-row {
+    display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;
+    font-size: 0.78rem; color: var(--muted);
+  }
+  .toggle-row input[type=checkbox] { accent-color: var(--cyan); }
+  .panel-close {
+    position: absolute; top: 1rem; right: 1rem; background: none; border: none;
+    color: var(--dim); font-size: 1.3rem; cursor: pointer;
+  }
+  .panel-close:hover { color: var(--text); }
+  .btn-scoring {
+    background: var(--card2); color: var(--cyan); border: 1px solid var(--cyan);
+    border-radius: 6px; padding: 0.4rem 0.8rem; font-size: 0.72rem;
+    font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-scoring:hover { background: rgba(6,182,212,0.15); }
+  .score-summary {
+    background: rgba(6,182,212,0.08); border: 1px solid rgba(6,182,212,0.2);
+    border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem;
+    display: flex; gap: 1rem; justify-content: space-around; text-align: center;
+  }
+  .score-summary .ss-val { font-size: 1.1rem; font-weight: 800; }
+  .score-summary .ss-lbl { font-size: 0.6rem; color: var(--dim); text-transform: uppercase; }
+  .proximity-rings { opacity: 0.15; }
+
+  .preset-btn {
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    padding: 0.4rem 0.7rem; font-size: 0.72rem; color: var(--text);
+    cursor: pointer; transition: all 0.2s;
+  }
+  .preset-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+  .preset-btn.active { background: rgba(6,182,212,0.15); border-color: var(--cyan); color: var(--cyan); }
+"""
+
+# Add config button next to existing filters
+html = html.replace(
+    '<div><label>Search</label><input id="fSearch" placeholder="keyword..." oninput="filterTable()"></div>',
+    '<div><label>Search</label><input id="fSearch" placeholder="keyword..." oninput="filterTable()"></div>\n'
+    '        <button class="btn-scoring" onclick="toggleScoring()">Lead Scoring Config</button>'
+)
+
+# Add Score column to table header
+html = html.replace(
+    "<th onclick=\"sortTable('date')\">Date</th>",
+    "<th onclick=\"sortTable('score')\" title=\"Lead Score\">Score</th>\n"
+    "        <th onclick=\"sortTable('date')\">Date</th>"
+)
+
+# Add Score column to table rows (in renderTable)
+# Insert scoreBadge calculation before the return statement
+html = html.replace(
+    "    return '<tr onclick=\"showDetail(\\'",
+    "    const scoreBadge = r.score >= 100 ? 'score-hot' : r.score >= 40 ? 'score-warm' : r.score >= 10 ? 'score-cool' : 'score-cold';\n"
+    "    return '<tr onclick=\"showDetail(\\'"
+)
+
+# Insert score cell before the date cell
+html = html.replace(
+    "      '<td>' + r.date + '</td>' +",
+    "      '<td><span class=\"score-badge ' + scoreBadge + '\">' + r.score + '</span></td>' +\n"
+    "      '<td>' + r.date + '</td>' +",
+    1  # only first occurrence
+)
+
+# Add scoring panel HTML before the overlay
+lead_panel_html = """
+<!-- Lead Scoring Config Panel -->
+<div id="scoringPanel">
+  <button class="panel-close" onclick="toggleScoring()">&times;</button>
+  <h3>Lead Scoring Configuration</h3>
+
+  <div class="score-summary">
+    <div><div class="ss-val" id="ssHot" style="color:var(--red)">0</div><div class="ss-lbl">Hot (&ge;100)</div></div>
+    <div><div class="ss-val" id="ssWarm" style="color:var(--orange)">0</div><div class="ss-lbl">Warm (40-99)</div></div>
+    <div><div class="ss-val" id="ssCool" style="color:var(--blue)">0</div><div class="ss-lbl">Cool (10-39)</div></div>
+    <div><div class="ss-val" id="ssCold" style="color:var(--dim)">0</div><div class="ss-lbl">Cold (&lt;10)</div></div>
+  </div>
+
+  <div style="margin-bottom:1rem;display:flex;gap:0.4rem;flex-wrap:wrap">
+    <div style="font-size:0.7rem;color:var(--dim);width:100%;margin-bottom:0.3rem">PRESETS</div>
+    <button class="preset-btn" onclick="applyPreset('rmx')">Ready-Mix Sales</button>
+    <button class="preset-btn" onclick="applyPreset('bags')">Bag Cement Sales</button>
+    <button class="preset-btn" onclick="applyPreset('aggregates')">Aggregates</button>
+    <button class="preset-btn" onclick="applyPreset('all')">Balanced</button>
+  </div>
+
+  <div class="panel-section">
+    <h4>Project Size Weights</h4>
+    <div class="slider-row"><label>XL (&ge;30t)</label><input type="range" id="wXL" min="0" max="200" value="100" oninput="updateScoring()"><span class="sv" id="vXL">100</span></div>
+    <div class="slider-row"><label>L (15-30t)</label><input type="range" id="wL" min="0" max="200" value="70" oninput="updateScoring()"><span class="sv" id="vL">70</span></div>
+    <div class="slider-row"><label>M (5-15t)</label><input type="range" id="wM" min="0" max="200" value="40" oninput="updateScoring()"><span class="sv" id="vM">40</span></div>
+    <div class="slider-row"><label>S (1-5t)</label><input type="range" id="wS" min="0" max="200" value="15" oninput="updateScoring()"><span class="sv" id="vS">15</span></div>
+    <div class="slider-row"><label>XS (&lt;1t)</label><input type="range" id="wXS" min="0" max="200" value="2" oninput="updateScoring()"><span class="sv" id="vXS">2</span></div>
+  </div>
+
+  <div class="panel-section">
+    <h4>Proximity to Plants</h4>
+    <div class="slider-row"><label>&lt;15km</label><input type="range" id="pNear" min="0" max="40" value="20" step="1" oninput="updateScoring()"><span class="sv" id="vNear">&times;2.0</span></div>
+    <div class="slider-row"><label>15-30km</label><input type="range" id="pMid" min="0" max="30" value="15" step="1" oninput="updateScoring()"><span class="sv" id="vMid">&times;1.5</span></div>
+    <div class="slider-row"><label>30-50km</label><input type="range" id="pFar" min="0" max="20" value="10" step="1" oninput="updateScoring()"><span class="sv" id="vFar">&times;1.0</span></div>
+    <div class="slider-row"><label>&gt;50km</label><input type="range" id="pVFar" min="0" max="10" value="3" step="1" oninput="updateScoring()"><span class="sv" id="vVFar">&times;0.3</span></div>
+    <div class="toggle-row"><input type="checkbox" id="showRings" onchange="toggleRings()"> Show proximity rings on map</div>
+  </div>
+
+  <div class="panel-section">
+    <h4>Timeline (Permit Age)</h4>
+    <div class="slider-row"><label>&lt;4 weeks</label><input type="range" id="tFresh" min="0" max="30" value="15" step="1" oninput="updateScoring()"><span class="sv" id="vFresh">&times;1.5</span></div>
+    <div class="slider-row"><label>4-8 weeks</label><input type="range" id="tMedium" min="0" max="20" value="12" step="1" oninput="updateScoring()"><span class="sv" id="vMedium">&times;1.2</span></div>
+    <div class="slider-row"><label>8-16 weeks</label><input type="range" id="tOld" min="0" max="20" value="10" step="1" oninput="updateScoring()"><span class="sv" id="vOld">&times;1.0</span></div>
+    <div class="slider-row"><label>&gt;16 weeks</label><input type="range" id="tStale" min="0" max="10" value="6" step="1" oninput="updateScoring()"><span class="sv" id="vStale">&times;0.6</span></div>
+  </div>
+
+  <div class="panel-section">
+    <h4>Contact & Type Bonuses</h4>
+    <div class="slider-row"><label>Has phone</label><input type="range" id="bPhone" min="10" max="20" value="13" step="1" oninput="updateScoring()"><span class="sv" id="vPhone">&times;1.3</span></div>
+    <div class="slider-row"><label>Has engineer</label><input type="range" id="bEng" min="10" max="20" value="11" step="1" oninput="updateScoring()"><span class="sv" id="vEng">&times;1.1</span></div>
+    <div class="slider-row"><label>New Build bonus</label><input type="range" id="bNew" min="10" max="20" value="12" step="1" oninput="updateScoring()"><span class="sv" id="vNew">&times;1.2</span></div>
+  </div>
+
+  <div class="panel-section">
+    <h4>Filter by Score</h4>
+    <div class="slider-row"><label>Min score</label><input type="range" id="fMinScore" min="0" max="100" value="0" oninput="updateScoring()"><span class="sv" id="vMinScore">0</span></div>
+    <div class="toggle-row"><input type="checkbox" id="scoreSort" checked onchange="updateScoring()"> Sort table by score (highest first)</div>
+  </div>
+
+  <button class="btn" style="width:100%;margin-top:0.5rem" onclick="updateScoring()">Apply & Recalculate</button>
+</div>
+"""
+
+html = html.replace(
+    '<div class="overlay"',
+    lead_panel_html + '\n<div class="overlay"'
+)
+
+# Add lead scoring JS
+lead_js = """
+
+// ── Lead Scoring Engine ──
+const PLANTS = [
+  {lat: 39.3621, lng: 22.9426},  // Volos
+  {lat: 38.4637, lng: 23.6028},  // Chalkida
+  {lat: 38.0418, lng: 23.5422},  // Elefsina
+  {lat: 38.0597, lng: 23.5865},  // Aspropyrgos RMC
+  {lat: 38.0231, lng: 23.8571},  // Gerakas RMC
+  {lat: 38.2466, lng: 21.7346},  // Patras
+];
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2-lat1)*Math.PI/180;
+  const dLon = (lon2-lon1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function nearestPlantKm(ada) {
+  const m = MARKERS.find(x => x.ada === ada);
+  if (!m) return 999;
+  let min = 999;
+  for (const p of PLANTS) min = Math.min(min, haversineKm(m.lat, m.lng, p.lat, p.lng));
+  return min;
+}
+
+// Cache distances
+const distCache = {};
+function getDistKm(ada) {
+  if (!(ada in distCache)) distCache[ada] = nearestPlantKm(ada);
+  return distCache[ada];
+}
+
+function getSlider(id) { return parseFloat(document.getElementById(id).value); }
+
+function calcScore(r) {
+  // Size base score
+  const wXL = getSlider('wXL'), wL = getSlider('wL'), wM = getSlider('wM'), wS = getSlider('wS'), wXS = getSlider('wXS');
+  let base;
+  if (r.cem >= 30) base = wXL;
+  else if (r.cem >= 15) base = wL;
+  else if (r.cem >= 5) base = wM;
+  else if (r.cem >= 1) base = wS;
+  else base = wXS;
+
+  // Proximity multiplier
+  const dist = getDistKm(r.ada);
+  const pNear = getSlider('pNear')/10, pMid = getSlider('pMid')/10, pFar = getSlider('pFar')/10, pVFar = getSlider('pVFar')/10;
+  let proxMult;
+  if (dist < 15) proxMult = pNear;
+  else if (dist < 30) proxMult = pMid;
+  else if (dist < 50) proxMult = pFar;
+  else proxMult = pVFar;
+
+  // Timeline multiplier
+  const today = new Date();
+  const issued = new Date(r.date);
+  const weeksOld = Math.max(0, (today - issued) / (7*24*60*60*1000));
+  const tFresh = getSlider('tFresh')/10, tMedium = getSlider('tMedium')/10;
+  const tOld = getSlider('tOld')/10, tStale = getSlider('tStale')/10;
+  let timeMult;
+  if (weeksOld < 4) timeMult = tFresh;
+  else if (weeksOld < 8) timeMult = tMedium;
+  else if (weeksOld < 16) timeMult = tOld;
+  else timeMult = tStale;
+
+  // Contact & type bonuses
+  const bPhone = getSlider('bPhone')/10, bEng = getSlider('bEng')/10, bNew = getSlider('bNew')/10;
+  let contactMult = 1.0;
+  if (r.eng && r.tee) contactMult = bEng;
+  let typeMult = r.con === 'New Build' ? bNew : 1.0;
+
+  return Math.round(base * proxMult * timeMult * contactMult * typeMult);
+}
+
+function updateScoring() {
+  // Update slider display values
+  document.getElementById('vXL').textContent = getSlider('wXL');
+  document.getElementById('vL').textContent = getSlider('wL');
+  document.getElementById('vM').textContent = getSlider('wM');
+  document.getElementById('vS').textContent = getSlider('wS');
+  document.getElementById('vXS').textContent = getSlider('wXS');
+  document.getElementById('vNear').textContent = '\\u00d7' + (getSlider('pNear')/10).toFixed(1);
+  document.getElementById('vMid').textContent = '\\u00d7' + (getSlider('pMid')/10).toFixed(1);
+  document.getElementById('vFar').textContent = '\\u00d7' + (getSlider('pFar')/10).toFixed(1);
+  document.getElementById('vVFar').textContent = '\\u00d7' + (getSlider('pVFar')/10).toFixed(1);
+  document.getElementById('vFresh').textContent = '\\u00d7' + (getSlider('tFresh')/10).toFixed(1);
+  document.getElementById('vMedium').textContent = '\\u00d7' + (getSlider('tMedium')/10).toFixed(1);
+  document.getElementById('vOld').textContent = '\\u00d7' + (getSlider('tOld')/10).toFixed(1);
+  document.getElementById('vStale').textContent = '\\u00d7' + (getSlider('tStale')/10).toFixed(1);
+  document.getElementById('vPhone').textContent = '\\u00d7' + (getSlider('bPhone')/10).toFixed(1);
+  document.getElementById('vEng').textContent = '\\u00d7' + (getSlider('bEng')/10).toFixed(1);
+  document.getElementById('vNew').textContent = '\\u00d7' + (getSlider('bNew')/10).toFixed(1);
+  document.getElementById('vMinScore').textContent = getSlider('fMinScore');
+
+  // Recalculate all scores
+  for (const r of TABLE) r.score = calcScore(r);
+
+  // Update summary counts
+  let hot=0, warm=0, cool=0, cold=0;
+  for (const r of TABLE) {
+    if (r.score >= 100) hot++;
+    else if (r.score >= 40) warm++;
+    else if (r.score >= 10) cool++;
+    else cold++;
+  }
+  document.getElementById('ssHot').textContent = hot;
+  document.getElementById('ssWarm').textContent = warm;
+  document.getElementById('ssCool').textContent = cool;
+  document.getElementById('ssCold').textContent = cold;
+
+  // Apply min score filter
+  const minScore = getSlider('fMinScore');
+  if (minScore > 0) {
+    document.getElementById('fCem').value = '0';
+    document.getElementById('fUse').value = '';
+    document.getElementById('fCon').value = '';
+    document.getElementById('fSearch').value = '';
+    filtered = TABLE.filter(r => r.score >= minScore);
+  } else {
+    filterTable();
+    return;
+  }
+
+  // Sort by score if checkbox is on
+  if (document.getElementById('scoreSort').checked) {
+    sortCol = 'score'; sortDir = -1;
+  }
+  page = 0;
+  doSort();
+}
+
+function toggleScoring() {
+  const panel = document.getElementById('scoringPanel');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) updateScoring();
+}
+
+let ringLayers = [];
+function toggleRings() {
+  if (!document.getElementById('showRings').checked) {
+    ringLayers.forEach(l => map.removeLayer(l));
+    ringLayers = [];
+    return;
+  }
+  const radii = [15000, 30000];
+  const colors = ['rgba(6,182,212,0.15)', 'rgba(59,130,246,0.1)'];
+  for (const p of PLANTS) {
+    for (let i = 0; i < radii.length; i++) {
+      const c = L.circle([p.lat, p.lng], {radius: radii[i], color: colors[i], fillColor: colors[i], fillOpacity: 0.08, weight: 1});
+      c.addTo(map);
+      ringLayers.push(c);
+    }
+  }
+}
+
+// Presets
+function applyPreset(name) {
+  const presets = {
+    rmx: {wXL:150,wL:100,wM:50,wS:10,wXS:0, pNear:25,pMid:20,pFar:5,pVFar:0, tFresh:18,tMedium:14,tOld:10,tStale:5, bPhone:15,bEng:12,bNew:15},
+    bags: {wXL:60,wL:70,wM:80,wS:60,wXS:20, pNear:12,pMid:12,pFar:10,pVFar:8, tFresh:15,tMedium:12,tOld:10,tStale:8, bPhone:13,bEng:11,bNew:11},
+    aggregates: {wXL:150,wL:120,wM:60,wS:5,wXS:0, pNear:25,pMid:15,pFar:5,pVFar:1, tFresh:15,tMedium:13,tOld:10,tStale:6, bPhone:13,bEng:11,bNew:15},
+    all: {wXL:100,wL:70,wM:40,wS:15,wXS:2, pNear:20,pMid:15,pFar:10,pVFar:3, tFresh:15,tMedium:12,tOld:10,tStale:6, bPhone:13,bEng:11,bNew:12},
+  };
+  const p = presets[name];
+  if (!p) return;
+  for (const [k,v] of Object.entries(p)) {
+    const el = document.getElementById(k);
+    if (el) el.value = v;
+  }
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase().includes(name)));
+  updateScoring();
+}
+
+// Initialize scores on load
+for (const r of TABLE) r.score = 0;
+setTimeout(() => { for (const r of TABLE) r.score = calcScore(r); }, 100);
+"""
+
+# Inject lead scoring JS before the init calls
+html = html.replace(
+    "// ── Init ──\ninitMap();\nfilterTable();",
+    lead_js + "\n// ── Init ──\ninitMap();\nfilterTable();\n// Initial scoring\nsetTimeout(updateScoring, 200);"
+)
+
+html = html.replace("</style>", lead_css + "\n</style>")
+
+# ═══════════════════════════════════════════════════════════════
+#  8. ADD PASSWORD SCREEN
 # ═══════════════════════════════════════════════════════════════
 
 # Password: "heracles2026" → SHA-256 hash
