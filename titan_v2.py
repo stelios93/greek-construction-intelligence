@@ -76,7 +76,8 @@ def classify_and_estimate(subject: str) -> dict:
         r["construction"] = "Addition"
     elif any(k in s for k in ["ΑΛΛΑΓΗ ΧΡΗΣΗΣ", "ΑΛΛΑΓΉ ΧΡΉΣΗΣ"]):
         r["construction"] = "Change of Use"
-    elif any(k in s for k in ["ΕΠΙΣΚΕΥ", "ΑΝΑΚΑΙΝΙ", "ΑΠΟΚΑΤΑΣΤ"]):
+    elif any(k in s for k in ["ΕΠΙΣΚΕΥ", "ΑΝΑΚΑΙΝΙ", "ΑΠΟΚΑΤΑΣΤ", "ΔΙΑΡΡΥΘΜΙΣ", "ΤΡΟΠΟΠΟΙ",
+                                "ΕΣΩΤΕΡΙΚ", "ΕΡΓΑΣΙΕΣ ΜΙΚΡΗΣ ΚΛΙΜΑΚΑΣ"]):
         r["construction"] = "Renovation"
     elif any(k in s for k in ["ΚΑΤΕΔΑΦ"]):
         r["construction"] = "Demolition"
@@ -118,9 +119,14 @@ def classify_and_estimate(subject: str) -> dict:
         floors = max(floors, 5)
     if any(k in s for k in ["ΠΟΛΥΩΡΟΦ", "ΠΟΛΥΌΡΟΦ"]):
         floors = max(floors, 6)
+    # Match "Xόροφο/Xώροφο" building descriptions, but NOT "Xου ορόφου" (location on a floor)
+    # "ΣΕ ΔΙΑΜΕΡΙΣΜΑ 5ου ΟΡΟΦΟΥ" = on the 5th floor, NOT a 5-story building
     floor_matches = re.findall(r'(\d+)\s*(?:ΟΥ?\s*)?ΟΡΟΦ', s)
     if floor_matches:
-        floors = max(floors, max(int(m) for m in floor_matches))
+        # Only use floor count from subject if it looks like a building description,
+        # not a location reference like "ΣΕ ... Xου ΟΡΟΦΟΥ"
+        if not re.search(r'(?:ΣΕ|ΣΤΟΝ?|ΣΤΟ)\s+(?:ΔΙΑΜΕΡΙΣΜΑ|ΟΡΟΦΟ|ΧΩΡΟ)', s):
+            floors = max(floors, max(int(m) for m in floor_matches))
     r["floors"] = floors
 
     # ── Units ──
@@ -144,7 +150,9 @@ def classify_and_estimate(subject: str) -> dict:
         r["construction"] in ("Fencing", "Demolition") or
         r["use"] == "Energy" or
         (any(k in s for k in ["ΘΕΡΜΟΜΟΝΩΣ", "ΕΞΟΙΚΟΝΟΜ", "ΚΟΥΦΩΜΑ", "ΧΡΩΜΑΤΙΣΜ", "ΒΑΨΙΜΟ",
-                                "ΚΟΠΗ ΔΕΝΔΡ", "ΑΝΤΛΙ", "ΚΛΙΜΑΤΙΣ"]) and
+                                "ΚΟΠΗ ΔΕΝΔΡ", "ΑΝΤΛΙ", "ΚΛΙΜΑΤΙΣ", "ΑΝΕΛΚΥΣΤΗΡ", "ΑΣΑΝΣΕΡ",
+                                "ΗΛΕΚΤΡΟΛΟΓ", "ΥΔΡΑΥΛΙΚ", "ΜΟΝΩΣ", "ΑΔΕΙΑ ΛΕΙΤΟΥΡΓ",
+                                "ΠΙΝΑΚΙΔ", "ΤΕΝΤ", "ΣΤΕΓΑΣΤΡ"]) and
          r["construction"] != "New Build")
     )
 
@@ -215,7 +223,9 @@ def classify_and_estimate(subject: str) -> dict:
         concrete_m3 *= 0.8   # Slightly less than full new build
 
     # Permit stage multiplier (pre-approvals may not proceed)
-    if r["stage"] == "Revision":
+    if r["stage"] == "Small Works":
+        concrete_m3 *= 0.05  # Minor works: painting, tiling, internal rearrangements
+    elif r["stage"] == "Revision":
         concrete_m3 *= 0.1  # Revision = usually minor changes, already built
     elif r["stage"] == "Update":
         concrete_m3 *= 0.0  # Administrative update, no new construction
