@@ -141,10 +141,19 @@ digest_css = """
   .region-bar .rb-bar { height: 18px; border-radius: 3px; transition: width 0.5s; }
   .region-bar .rb-val { color: var(--text); font-weight: 600; min-width: 50px; }
   .top-engineers { font-size: 0.78rem; }
-  .top-engineers .te-row { display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px solid rgba(30,41,59,0.3); }
+  .top-engineers .te-row { display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0; border-bottom: 1px solid rgba(30,41,59,0.3); }
   .te-row .te-name { color: var(--text); }
   .te-row .te-count { color: var(--cyan); font-weight: 700; }
   .te-row .te-tee { color: var(--dim); font-size: 0.7rem; }
+  .te-row .te-search { display: inline-flex; gap: 3px; margin-left: 6px; }
+  .te-row .te-search a, .eng-search a {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 4px; font-size: 0.7rem;
+    text-decoration: none; opacity: 0.5; transition: opacity 0.2s, background 0.2s;
+  }
+  .te-row .te-search a:hover, .eng-search a:hover { opacity: 1; background: rgba(59,130,246,0.2); }
+  .eng-search { display: inline-flex; gap: 3px; margin-left: 6px; vertical-align: middle; }
+  .eng-search a { width: 20px; height: 20px; border-radius: 3px; font-size: 0.65rem; }
 
   .plant-popup .leaflet-popup-content-wrapper {
     background: #1a2234; border: 1px solid #3b82f6; border-radius: 8px;
@@ -177,7 +186,7 @@ digest_html = """
       <div class="chart-container"><canvas id="trendChart"></canvas></div>
     </div>
     <div class="digest-card">
-      <h3>Top Engineers <span style="color:var(--dim);font-weight:400">(most permits this month)</span></h3>
+      <h3>Top Engineers <span style="color:var(--dim);font-weight:400">(by cement tonnage this month)</span></h3>
       <div id="topEngineers" class="top-engineers"></div>
     </div>
     <div class="digest-card">
@@ -373,8 +382,15 @@ function renderDigest() {
     const tee = parts[1] || '';
     const cem = e[1].toFixed(1);
     const cnt = engPermits[e[0]];
+    const q = encodeURIComponent(name + (tee ? ' TEE ' + tee : '') + ' μηχανικός τηλέφωνο');
+    const gUrl = 'https://www.google.com/search?q=' + q;
+    const liUrl = 'https://www.linkedin.com/search/results/people/?keywords=' + encodeURIComponent(name);
     return '<div class="te-row"><span><span class="te-name">' + name + '</span>' +
       (tee ? ' <span class="te-tee">TEE ' + tee + '</span>' : '') +
+      '<span class="te-search">' +
+        '<a href="' + gUrl + '" target="_blank" title="Search phone/email">📞</a>' +
+        '<a href="' + liUrl + '" target="_blank" title="Find on LinkedIn">in</a>' +
+      '</span>' +
       '</span><span class="te-count">' + cem + 't <span style="color:var(--dim)">(' + cnt + ')</span></span></div>';
   }).join('');
 
@@ -531,6 +547,16 @@ html = html.replace(
     "      '<td><span class=\"score-badge ' + scoreBadge + '\">' + r.score + '</span></td>' +\n"
     "      '<td>' + r.date + '</td>' +",
     1  # only first occurrence
+)
+
+# Add engineer search buttons to table rows
+html = html.replace(
+    "const engDisplay = r.eng ? (r.eng + (r.tee ? ' <span style=\"color:var(--dim);font-size:0.68rem\">(TEE ' + r.tee + ')</span>' : '')) : '<span style=\"color:var(--dim)\">—</span>';",
+    "const engSearch = r.eng ? '<span class=\"eng-search\">' +"
+    " '<a href=\"https://www.google.com/search?q=' + encodeURIComponent(r.eng + (r.tee ? ' TEE ' + r.tee : '') + ' μηχανικός τηλέφωνο') + '\" target=\"_blank\" title=\"Search phone/email\" onclick=\"event.stopPropagation()\">📞</a>' +"
+    " '<a href=\"https://www.linkedin.com/search/results/people/?keywords=' + encodeURIComponent(r.eng) + '\" target=\"_blank\" title=\"Find on LinkedIn\" onclick=\"event.stopPropagation()\" style=\"font-weight:700;font-size:0.6rem;color:var(--blue)\">in</a>' +"
+    " '</span>' : '';\n"
+    "    const engDisplay = r.eng ? (r.eng + (r.tee ? ' <span style=\"color:var(--dim);font-size:0.68rem\">(TEE ' + r.tee + ')</span>' : '') + engSearch) : '<span style=\"color:var(--dim)\">—</span>';"
 )
 
 # Add scoring panel HTML before the overlay
