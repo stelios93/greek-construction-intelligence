@@ -893,6 +893,7 @@ def generate_map_dashboard(df: pd.DataFrame, parsed_data: list, output_path: Pat
             "eng": parsed.get("engineer_name", ""),
             "tee": parsed.get("engineer_tee", ""),
             "street": parsed.get("street", ""),
+            "pe": lookup_pe(municipality, str(row.get("organization_name", "")), str(row.get("organization_id", ""))),
         })
         geocoded += 1
 
@@ -1244,6 +1245,12 @@ def generate_map_dashboard(df: pd.DataFrame, parsed_data: list, output_path: Pat
   </div>
   <span class="date-val" id="dateToLabel">{date_max}</span>
   <button class="reset-btn" onclick="resetDateFilter()">Reset</button>
+  <span style="color:var(--border)">│</span>
+  <span class="lbl">ΠΕ</span>
+  <select id="peFilter" onchange="onPEFilter()" style="background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:0.35rem 0.5rem;font-size:0.75rem;max-width:220px">
+    <option value="">Όλες οι ΠΕ</option>
+  </select>
+  <button class="reset-btn" id="peClearBtn" onclick="clearPEFilter()" style="display:none">✕ ΠΕ</button>
   <span id="dateFilterCount" style="color:var(--dim);font-size:0.72rem"></span>
 </div>
 
@@ -1344,8 +1351,15 @@ def generate_map_dashboard(df: pd.DataFrame, parsed_data: list, output_path: Pat
     <div class="territory-header">
       <h3>Διαχείριση Εδαφών — Περιφερειακές Ενότητες</h3>
       <div style="font-size:0.72rem;color:var(--dim)">Κλικ για ανάθεση Υπεύθυνου Πωλήσεων · Αποθηκεύεται αυτόματα</div>
+      <div style="display:flex;gap:0.5rem;margin-left:auto">
+        <button class="reset-btn" onclick="switchTerritoryView('map')" id="tViewMap" style="border-color:var(--cyan);color:var(--cyan)">Map</button>
+        <button class="reset-btn" onclick="switchTerritoryView('table')" id="tViewTable">Table</button>
+      </div>
     </div>
-    <table class="territory-table">
+    <div id="territoryMapWrap" style="display:none;height:500px;border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;overflow:hidden">
+      <div id="territoryMap" style="height:100%"></div>
+    </div>
+    <table class="territory-table" id="territoryTableEl">
       <thead><tr>
         <th>Περιφερειακή Ενότητα</th>
         <th>Άδειες</th>
@@ -1353,6 +1367,7 @@ def generate_map_dashboard(df: pd.DataFrame, parsed_data: list, output_path: Pat
         <th>Ανεγέρσεις</th>
         <th>Μπετόν / Άδεια</th>
         <th style="min-width:160px">Υπεύθυνος Πωλήσεων</th>
+        <th></th>
       </tr></thead>
       <tbody id="territoryTbody"></tbody>
     </table>
@@ -1488,7 +1503,7 @@ function updateMap() {{
   const colorBy = document.getElementById('mapColor').value;
   markerLayer.clearLayers();
 
-  const filtered = MARKERS.filter(m => m.cem >= minCem && (!dateFrom || (m.date >= dateFrom && m.date <= dateTo)));
+  const filtered = MARKERS.filter(m => m.cem >= minCem && (!dateFrom || (m.date >= dateFrom && m.date <= dateTo)) && (!selectedPE || m.pe === selectedPE));
 
   for (const m of filtered) {{
     const color = colorBy === 'use' ? (useColors[m.use] || '#64748b') : cemColor(m.cem);
@@ -1614,6 +1629,7 @@ function filterTable() {{
     r.cem >= minCem &&
     (!use || r.use === use) &&
     (!con || r.con === con) &&
+    (!selectedPE || r.pe === selectedPE) &&
     (!dateFrom || (r.date >= dateFrom && r.date <= dateTo)) &&
     (!search || r.sub.toUpperCase().includes(search) || r.ada.toUpperCase().includes(search) ||
      r.eng.toUpperCase().includes(search) || r.muni.toUpperCase().includes(search))
@@ -1931,6 +1947,92 @@ function resetFormula() {{
 
 // ── Territories ──
 let territoriesRendered = false;
+let selectedPE = '';
+let territoryMap = null;
+
+function onPEFilter() {{
+  selectedPE = document.getElementById('peFilter').value;
+  document.getElementById('peClearBtn').style.display = selectedPE ? '' : 'none';
+  filterTable();
+  updateMap();
+  if (selectedPE && map) {{
+    // Auto-zoom map to filtered markers
+    const pts = MARKERS.filter(m => m.pe === selectedPE);
+    if (pts.length) {{
+      const lats = pts.map(m => m.lat), lngs = pts.map(m => m.lng);
+      map.fitBounds([[Math.min(...lats)-0.3, Math.min(...lngs)-0.3],[Math.max(...lats)+0.3, Math.max(...lngs)+0.3]]);
+    }}
+  }}
+}}
+
+function clearPEFilter() {{
+  document.getElementById('peFilter').value = '';
+  onPEFilter();
+}}
+
+function switchTerritoryView(v) {{
+  const isMap = v === 'map';
+  document.getElementById('territoryMapWrap').style.display = isMap ? 'block' : 'none';
+  document.getElementById('territoryTableEl').style.display = isMap ? 'none' : '';
+  document.getElementById('tViewMap').style.borderColor = isMap ? 'var(--cyan)' : '';
+  document.getElementById('tViewMap').style.color = isMap ? 'var(--cyan)' : '';
+  document.getElementById('tViewTable').style.borderColor = !isMap ? 'var(--cyan)' : '';
+  document.getElementById('tViewTable').style.color = !isMap ? 'var(--cyan)' : '';
+  if (isMap) {{
+    if (!territoryMap) initTerritoryMap();
+    else setTimeout(() => territoryMap.invalidateSize(), 50);
+  }}
+}}
+
+function initTerritoryMap() {{
+  territoryMap = L.map('territoryMap').setView([38.5, 24.0], 6);
+  L.tileLayer('https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{
+    attribution: '&copy; OSM &copy; CARTO', maxZoom: 18,
+  }}).addTo(territoryMap);
+  renderTerritoryMap();
+}}
+
+function renderTerritoryMap() {{
+  if (!territoryMap) return;
+  // Compute PE centroids from MARKERS
+  const peData = {{}};
+  for (const m of MARKERS) {{
+    if (!m.pe) continue;
+    if (!peData[m.pe]) peData[m.pe] = {{ lats: [], lngs: [], m3: 0, count: 0 }};
+    peData[m.pe].lats.push(m.lat);
+    peData[m.pe].lngs.push(m.lng);
+    peData[m.pe].m3 += m.m3 || 0;
+    peData[m.pe].count++;
+  }}
+  const maxM3 = Math.max(...Object.values(peData).map(d => d.m3), 1);
+  const mgrs = JSON.parse(localStorage.getItem('territoryManagers') || '{{}}');
+
+  for (const [pe, d] of Object.entries(peData)) {{
+    const lat = d.lats.reduce((a,b) => a+b, 0) / d.lats.length;
+    const lng = d.lngs.reduce((a,b) => a+b, 0) / d.lngs.length;
+    const radius = Math.max(8000, Math.sqrt(d.m3 / maxM3) * 80000);
+    const color = selectedPE === pe ? '#f59e0b' : '#06b6d4';
+    const circle = L.circle([lat, lng], {{
+      radius,
+      color,
+      fillColor: color,
+      fillOpacity: 0.25,
+      weight: selectedPE === pe ? 3 : 1,
+    }}).addTo(territoryMap);
+
+    const mgr = mgrs[pe] ? ' · ' + mgrs[pe] : '';
+    const popupHtml = '<div style="font-size:12px;color:#e2e8f0;background:#1a2234;padding:0.4rem 0.6rem;border-radius:6px;min-width:120px">' +
+      '<strong>' + pe + '</strong><br>' +
+      '<span style="color:#06b6d4">' + Math.round(d.m3).toLocaleString() + ' m\u00b3</span>' +
+      ' \u00b7 ' + d.count + ' \u03ac\u03b4\u03b5\u03b9\u03b5\u03c2' + mgr +
+      '<br><small style="color:#64748b">Click to filter</small></div>';
+    circle.bindPopup(popupHtml);
+    circle.on('click', () => {{
+      document.getElementById('peFilter').value = pe;
+      onPEFilter();
+    }});
+  }}
+}}
 const TERRITORY_MANAGERS = JSON.parse(localStorage.getItem('territoryManagers') || '{{}}');
 
 function saveTerritoryManagers() {{
@@ -1972,6 +2074,7 @@ function renderTerritories() {{
       '<td>' + s.newBuilds.toLocaleString() + '</td>' +
       '<td>' + perPermit + '</td>' +
       '<td><input class="mgr-input" value="' + mgr.replace(/"/g, '&quot;') + '" placeholder="π.χ. Γ. Παπαδόπουλος" data-pe="' + pe.replace(/"/g, '&quot;') + '" onchange="saveMgr(this)"></td>' +
+      '<td><button onclick="filterByPE(this.dataset.pe)" data-pe="' + pe.replace(/"/g, '&quot;') + '" style="background:none;border:1px solid var(--border);color:var(--cyan);border-radius:5px;padding:0.2rem 0.5rem;font-size:0.7rem;cursor:pointer" title="Filter map & register to this ΠΕ">→ Map</button></td>' +
       '</tr>';
   }}).join('');
 
@@ -1988,6 +2091,21 @@ document.getElementById('dateToLabel').textContent   = DATE_MAX;
 document.getElementById('sliderRange').style.left  = '0%';
 document.getElementById('sliderRange').style.width = '100%';
 document.getElementById('dateFilterCount').textContent = TABLE.length.toLocaleString() + ' permits';
+
+// Populate PE dropdown
+const allPEs = [...new Set(TABLE.map(r => r.pe).filter(Boolean))].sort();
+const peSelect = document.getElementById('peFilter');
+allPEs.forEach(pe => {{
+  const opt = document.createElement('option');
+  opt.value = pe; opt.textContent = pe;
+  peSelect.appendChild(opt);
+}});
+
+function filterByPE(pe) {{
+  document.getElementById('peFilter').value = pe;
+  onPEFilter();
+  switchTab('map');
+}}
 </script>
 </body>
 </html>"""
