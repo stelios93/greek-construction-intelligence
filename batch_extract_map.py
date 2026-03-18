@@ -332,6 +332,7 @@ _PE_RAW = {
     "ΚΑΛΥΜΝΙΩΝ": "ΠΕ Καλύμνου",
     "ΛΕΡΟΥ": "ΠΕ Λέρου",
     "ΚΑΡΠΑΘΟΥ": "ΠΕ Καρπάθου",
+    "ΚΩ": "ΠΕ Κω",
     "ΚΩΝΣΤΑΝΤΙΝΟΣ": "ΠΕ Κω",
     "ΜΥΤΙΛΗΝΗΣ": "ΠΕ Λέσβου",
     "ΔΥΤΙΚΗΣ ΛΕΣΒΟΥ": "ΠΕ Λέσβου",
@@ -346,6 +347,8 @@ _PE_RAW = {
     "ΣΥΡΟΥΕΡΜΟΥΠΟΛΗΣ": "ΠΕ Σύρου",
     "ΜΥΚΟΝΟΥ": "ΠΕ Μυκόνου",
     "ΝΑΞΟΥ ΚΑΙ ΜΙΚΡΩΝ ΚΥΚΛΑΔΩΝ": "ΠΕ Νάξου",
+    "ΝΑΞΟΥ ΚΑΙ ΜΙΚΡΕΣ ΚΥΚΛΑΔΕΣ": "ΠΕ Νάξου",
+    "ΝΑΞΟΥ ΜΙΚΡΩΝ ΚΥΚΛΑΔΩΝ": "ΠΕ Νάξου",
     "ΠΑΡΟΥ": "ΠΕ Πάρου",
     "ΘΗΡΑΣ": "ΠΕ Θήρας",
     "ΤΗΝΟΥ": "ΠΕ Τήνου",
@@ -369,6 +372,40 @@ MUNICIPALITY_TO_PE = {_norm_muni(k): v for k, v in _PE_RAW.items()}
 # Salvage specific garbage strings from bad PDF parsing
 MUNICIPALITY_TO_PE["ΔΡΑΜΑΣΟΤ"] = "ΠΕ Δράμας"
 MUNICIPALITY_TO_PE["ΠΑΤΡΕΩΝΚΑΕ"] = "ΠΕ Αχαΐας"
+
+# Direct organization_id → PE for known orgs with no geographic name in org_name
+ORG_ID_TO_PE = {
+    "6164": "ΠΕ Κω",                       # ΔΗΜΟΣ ΚΩ
+    "6203": "ΠΕ Νάξου",                     # ΔΗΜΟΣ ΝΑΞΟΥ & ΜΙΚΡΩΝ ΚΥΚΛΑΔΩΝ
+    "99221217": "ΠΕ Χανίων",                # ΕΑΚ ΧΑΝΙΩΝ
+    "99221922": "ΠΕ Κορινθίας",             # ΝΟΜ.ΓΕΝ. ΝΟΣΟΚΟΜΕΙΟ ΚΟΡΙΝΘΟΥ
+    "6058": "ΠΕ Μαγνησίας",                 # ΔΗΜΟΣ ΒΟΛΟΥ
+    "6272": "ΠΕ Σερρών",                    # ΔΗΜΟΣ ΣΕΡΡΩΝ
+    "6318": "ΠΕ Χανίων",                    # ΔΗΜΟΣ ΧΑΝΙΩΝ
+    "100081912": "ΠΕ Κεντρικού Τομέα Αθηνών", # ΥΠΟΥΡΓΕΙΟ ΠΟΛΙΤΙΣΜΟΥ
+    "99201054": "ΠΕ Κεντρικού Τομέα Αθηνών",  # ΠΡΑΣΙΝΟ ΤΑΜΕΙΟ
+    "51656": "ΠΕ Χαλκιδικής",               # ΕΠΟΚΑΜ Α.Ε. (Νέα Προποντίδα)
+    "99202030": "ΠΕ Κεντρικού Τομέα Αθηνών",  # ΑΚΑΔΗΜΙΑ ΑΘΗΝΩΝ
+}
+
+
+def lookup_pe(muni: str, org_name: str, org_id: str) -> str:
+    """Try every available signal to find the ΠΕ for a permit."""
+    # 1. Municipality from parsed PDF
+    if muni:
+        pe = MUNICIPALITY_TO_PE.get(_norm_muni(muni), "")
+        if pe:
+            return pe
+    # 2. Extract from organization_name (strip ΔΗΜΟΣ / ΔΗΜΟΥ / ΚΟΙΝΟΤΗΤΑ prefix)
+    stripped = re.sub(r"^(ΔΗΜΟΣ|ΔΗΜΟΥ|ΚΟΙΝΟΤΗΤΑ)\s+", "",
+                      org_name, flags=re.IGNORECASE).strip()
+    # Also normalize & → ΚΑΙ so "ΝΑΞΟΥ & ΜΙΚΡΩΝ" matches key
+    stripped = re.sub(r"\s*&\s*", " ΚΑΙ ", stripped)
+    pe = MUNICIPALITY_TO_PE.get(_norm_muni(stripped), "")
+    if pe:
+        return pe
+    # 3. Direct org_id lookup
+    return ORG_ID_TO_PE.get(str(org_id).strip(), "")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  PDF PARSER (regex, no LLM)
@@ -889,7 +926,11 @@ def generate_map_dashboard(df: pd.DataFrame, parsed_data: list, output_path: Pat
             "city": city,
             "street": parsed.get("street", ""),
             "m3": round(float(row.get("concrete_m3", 0)), 1) if pd.notna(row.get("concrete_m3")) else 0,
-            "pe": MUNICIPALITY_TO_PE.get(_norm_muni(muni) if muni else "", ""),
+            "pe": lookup_pe(
+                muni,
+                str(row.get("organization_name", "")),
+                str(row.get("organization_id", "")),
+            ),
         })
 
     # Sort by cement desc
@@ -1905,13 +1946,15 @@ function saveMgr(input) {{
 function renderTerritories() {{
   territoriesRendered = true;
 
-  // Aggregate by PE
+  // Aggregate by PE — only permits with concrete demand (m3 > 0) and known PE
   const peStats = {{}};
   for (const r of TABLE) {{
-    const pe = r.pe || '(Άγνωστη ΠΕ)';
+    if ((r.m3 || 0) <= 0) continue;   // skip zero-concrete permits
+    const pe = r.pe;
+    if (!pe) continue;                 // skip truly unknown location
     if (!peStats[pe]) peStats[pe] = {{ permits: 0, m3: 0, newBuilds: 0 }};
     peStats[pe].permits++;
-    peStats[pe].m3 += r.m3 || 0;
+    peStats[pe].m3 += r.m3;
     if (r.con === 'New Build') peStats[pe].newBuilds++;
   }}
 
