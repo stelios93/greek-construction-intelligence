@@ -23,10 +23,25 @@ from PyPDF2 import PdfReader
 
 
 def _norm_muni(s: str) -> str:
-    """Normalize a Greek municipality name: uppercase, strip accents, keep only letters/spaces."""
+    """Normalize a Greek municipality name to a compact key for lookup.
+    Strips accents, uppercases, removes non-alpha chars (including hyphens/spaces),
+    and truncates at noise words that indicate the regex grabbed too much text."""
     s = unicodedata.normalize("NFD", s.upper())
     s = "".join(c for c in s if unicodedata.category(c) != "Mn")
-    return re.sub(r"[^Α-ΩA-Z ]", "", s).strip()
+    # Replace non-alpha with space so we can detect noise word boundaries
+    s = re.sub(r"[^Α-ΩA-Z]", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    # Truncate at words that indicate garbage leaked from PDF parsing
+    _NOISE = {"ΟΔΟΣ", "ΟΤ", "ΟΙΚ", "ΚΑΕ", "ΓΙΑ", "ΣΤΟ", "ΠΛΑΙΣΙΟ", "ΕΤΟΣ",
+              "ΑΔΕΙΟΔΟΤΗΣΗ", "ΑΜΟΙΒΕΣ", "ΕΡΓΟ", "ΠΡΟΓΡΑΜΜΑ", "ΑΡΙΘΜΟΣ"}
+    words = s.split()
+    trimmed = []
+    for w in words:
+        if w in _NOISE:
+            break
+        trimmed.append(w)
+    # Return with NO spaces — makes hyphen/space variants identical
+    return "".join(trimmed)
 
 DATA_DIR = Path(__file__).parent / "data"
 PDF_CACHE_DIR = DATA_DIR / "pdf_cache"
@@ -164,6 +179,7 @@ _PE_RAW = {
     "ΠΑΙΟΝΙΑΣ": "ΠΕ Κιλκίς",
     # ── ΠΕ Πέλλας ──
     "ΕΔΕΣΣΗΣ": "ΠΕ Πέλλας",
+    "ΕΔΕΣΣΑΣ": "ΠΕ Πέλλας",
     "ΠΕΛΛΑΣ": "ΠΕ Πέλλας",
     "ΑΛΜΩΠΙΑΣ": "ΠΕ Πέλλας",
     "ΣΚΥΔΡΑΣ": "ΠΕ Πέλλας",
@@ -350,6 +366,9 @@ _PE_RAW = {
 
 # Build normalized lookup (strip accents from keys for case-insensitive matching)
 MUNICIPALITY_TO_PE = {_norm_muni(k): v for k, v in _PE_RAW.items()}
+# Salvage specific garbage strings from bad PDF parsing
+MUNICIPALITY_TO_PE["ΔΡΑΜΑΣΟΤ"] = "ΠΕ Δράμας"
+MUNICIPALITY_TO_PE["ΠΑΤΡΕΩΝΚΑΕ"] = "ΠΕ Αχαΐας"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  PDF PARSER (regex, no LLM)
