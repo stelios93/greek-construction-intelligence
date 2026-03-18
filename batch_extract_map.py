@@ -26,6 +26,153 @@ PDF_CACHE_DIR.mkdir(exist_ok=True)
 
 GEOCODE_CACHE_FILE = DATA_DIR / "geocode_cache.json"
 
+# ── Herakles plant locations (cement + ready-mix concrete) ──
+HERACLES_PLANTS = [
+    # Cement plants
+    {"name": "Herakles Μιλάκι (Τσιμέντο)", "lat": 39.3600, "lng": 22.9300, "type": "Cement"},
+    {"name": "Herakles Αλιβέρι (Τσιμέντο)", "lat": 38.3800, "lng": 23.9800, "type": "Cement"},
+    # Ready-mix concrete — Αττική
+    {"name": "Herakles Ελευσίνα", "lat": 38.0418, "lng": 23.5422, "type": "RMC"},
+    {"name": "Herakles Ασπρόπυργος", "lat": 38.0597, "lng": 23.5865, "type": "RMC"},
+    {"name": "Herakles Περισσός", "lat": 38.0520, "lng": 23.7538, "type": "RMC"},
+    {"name": "Herakles Γέρακας", "lat": 38.0231, "lng": 23.8571, "type": "RMC"},
+    {"name": "Herakles Κορωπί", "lat": 37.9012, "lng": 23.8767, "type": "RMC"},
+    {"name": "Herakles Πειραιάς", "lat": 37.9435, "lng": 23.6443, "type": "RMC"},
+    {"name": "Herakles Μοσχάτο", "lat": 37.9500, "lng": 23.7000, "type": "RMC"},
+    {"name": "Herakles Παλλήνη", "lat": 38.0050, "lng": 23.8800, "type": "RMC"},
+    # Ready-mix — Rest of Greece
+    {"name": "Herakles Θεσσαλονίκη", "lat": 40.6401, "lng": 22.9444, "type": "RMC"},
+    {"name": "Herakles Σίνδος", "lat": 40.6667, "lng": 22.7833, "type": "RMC"},
+    {"name": "Herakles Λάρισα", "lat": 39.6372, "lng": 22.4202, "type": "RMC"},
+    {"name": "Herakles Βόλος", "lat": 39.3621, "lng": 22.9420, "type": "RMC"},
+    {"name": "Herakles Πάτρα", "lat": 38.2466, "lng": 21.7346, "type": "RMC"},
+    {"name": "Herakles Κόρινθος", "lat": 37.9409, "lng": 22.9319, "type": "RMC"},
+    {"name": "Herakles Χαλκίδα", "lat": 38.4633, "lng": 23.5981, "type": "RMC"},
+    {"name": "Herakles Λαμία", "lat": 38.8990, "lng": 22.4341, "type": "RMC"},
+    {"name": "Herakles Ιωάννινα", "lat": 39.6650, "lng": 20.8537, "type": "RMC"},
+    {"name": "Herakles Ηράκλειο Κρήτης", "lat": 35.3387, "lng": 25.1442, "type": "RMC"},
+    {"name": "Herakles Χανιά", "lat": 35.5138, "lng": 24.0180, "type": "RMC"},
+    {"name": "Herakles Καβάλα", "lat": 40.9396, "lng": 24.4014, "type": "RMC"},
+    {"name": "Herakles Αλεξανδρούπολη", "lat": 40.8447, "lng": 25.8744, "type": "RMC"},
+]
+
+# ── Municipality → Περιφερειακή Ενότητα ──
+MUNICIPALITY_TO_PE = {
+    # Αττική - Κεντρικός Τομέας
+    "ΑΘΗΝΑΙΩΝ": "ΠΕ Αθηνών", "ΑΘΗΝΩΝ": "ΠΕ Αθηνών", "ΖΩΓΡΑΦΟΥ": "ΠΕ Αθηνών",
+    "ΔΑΦΝΗΣ-ΥΜΗΤΤΟΥ": "ΠΕ Αθηνών", "ΒΥΡΩΝΟΣ": "ΠΕ Αθηνών", "ΗΛΙΟΥΠΟΛΕΩΣ": "ΠΕ Αθηνών",
+    "ΓΑΛΑΤΣΙΟΥ": "ΠΕ Αθηνών", "ΦΙΛΑΔΕΛΦΕΙΑΣ-ΧΑΛΚΗΔΟΝΟΣ": "ΠΕ Αθηνών",
+    # Αττική - Νότιος Τομέας
+    "ΠΑΛΑΙΟΥ ΦΑΛΗΡΟΥ": "ΠΕ Νοτίου Τομέα Αθηνών", "ΓΛΥΦΑΔΑΣ": "ΠΕ Νοτίου Τομέα Αθηνών",
+    "ΑΛΙΜΟΥ": "ΠΕ Νοτίου Τομέα Αθηνών", "ΚΑΛΛΙΘΕΑΣ": "ΠΕ Νοτίου Τομέα Αθηνών",
+    "ΜΟΣΧΑΤΟΥ-ΤΑΥΡΟΥ": "ΠΕ Νοτίου Τομέα Αθηνών", "ΝΕΑΣ ΣΜΥΡΝΗΣ": "ΠΕ Νοτίου Τομέα Αθηνών",
+    "ΑΓΙΟΥ ΔΗΜΗΤΡΙΟΥ": "ΠΕ Νοτίου Τομέα Αθηνών", "ΒΑΡΗΣ-ΒΟΥΛΑΣ-ΒΟΥΛΙΑΓΜΕΝΗΣ": "ΠΕ Νοτίου Τομέα Αθηνών",
+    "ΕΛΛΗΝΙΚΟΥ-ΑΡΓΥΡΟΥΠΟΛΗΣ": "ΠΕ Νοτίου Τομέα Αθηνών",
+    # Αττική - Δυτικός Τομέας
+    "ΠΕΡΙΣΤΕΡΙΟΥ": "ΠΕ Δυτικού Τομέα Αθηνών", "ΙΛΙΟΥ": "ΠΕ Δυτικού Τομέα Αθηνών",
+    "ΧΑΙΔΑΡΙΟΥ": "ΠΕ Δυτικού Τομέα Αθηνών", "ΑΙΓΑΛΕΩ": "ΠΕ Δυτικού Τομέα Αθηνών",
+    "ΠΕΤΡΟΥΠΟΛΕΩΣ": "ΠΕ Δυτικού Τομέα Αθηνών", "ΑΓΙΑΣ ΒΑΡΒΑΡΑΣ": "ΠΕ Δυτικού Τομέα Αθηνών",
+    "ΑΓΙΩΝ ΑΝΑΡΓΥΡΩΝ-ΚΑΜΑΤΕΡΟΥ": "ΠΕ Δυτικού Τομέα Αθηνών",
+    # Αττική - Βόρειος Τομέας
+    "ΧΑΛΑΝΔΡΙΟΥ": "ΠΕ Βορείου Τομέα Αθηνών", "ΑΜΑΡΟΥΣΙΟΥ": "ΠΕ Βορείου Τομέα Αθηνών",
+    "ΚΗΦΙΣΙΑΣ": "ΠΕ Βορείου Τομέα Αθηνών", "ΠΕΝΤΕΛΗΣ": "ΠΕ Βορείου Τομέα Αθηνών",
+    "ΝΕΑΣ ΙΩΝΙΑΣ": "ΠΕ Βορείου Τομέα Αθηνών", "ΜΕΤΑΜΟΡΦΩΣΕΩΣ": "ΠΕ Βορείου Τομέα Αθηνών",
+    "ΑΓΙΑΣ ΠΑΡΑΣΚΕΥΗΣ": "ΠΕ Βορείου Τομέα Αθηνών", "ΠΑΠΑΓΟΥ-ΧΟΛΑΡΓΟΥ": "ΠΕ Βορείου Τομέα Αθηνών",
+    "ΒΡΙΛΗΣΣΙΩΝ": "ΠΕ Βορείου Τομέα Αθηνών", "ΛΥΚΟΒΡΥΣΗΣ-ΠΕΥΚΗΣ": "ΠΕ Βορείου Τομέα Αθηνών",
+    "ΦΙΛΟΘΕΗΣ-ΨΥΧΙΚΟΥ": "ΠΕ Βορείου Τομέα Αθηνών",
+    # ΠΕ Πειραιώς
+    "ΠΕΙΡΑΙΩΣ": "ΠΕ Πειραιώς", "ΝΙΚΑΙΑΣ-ΑΓΙΟΥ ΙΩΑΝΝΗ ΡΕΝΤΗ": "ΠΕ Πειραιώς",
+    "ΚΕΡΑΤΣΙΝΙΟΥ-ΔΡΑΠΕΤΣΩΝΑΣ": "ΠΕ Πειραιώς", "ΚΟΡΥΔΑΛΛΟΥ": "ΠΕ Πειραιώς",
+    "ΠΕΡΑΜΑΤΟΣ": "ΠΕ Πειραιώς",
+    # ΠΕ Ανατολικής Αττικής
+    "ΠΑΛΛΗΝΗΣ": "ΠΕ Ανατολικής Αττικής", "ΚΡΩΠΙΑΣ": "ΠΕ Ανατολικής Αττικής",
+    "ΜΑΡΚΟΠΟΥΛΟΥ": "ΠΕ Ανατολικής Αττικής", "ΛΑΥΡΕΩΤΙΚΗΣ": "ΠΕ Ανατολικής Αττικής",
+    "ΣΠΑΤΩΝ-ΑΡΤΕΜΙΔΟΣ": "ΠΕ Ανατολικής Αττικής", "ΜΑΡΑΘΩΝΟΣ": "ΠΕ Ανατολικής Αττικής",
+    "ΡΑΦΗΝΑΣ-ΠΙΚΕΡΜΙΟΥ": "ΠΕ Ανατολικής Αττικής", "ΔΙΟΝΥΣΟΥ": "ΠΕ Ανατολικής Αττικής",
+    "ΩΡΩΠΟΥ": "ΠΕ Ανατολικής Αττικής",
+    # ΠΕ Δυτικής Αττικής
+    "ΕΛΕΥΣΙΝΟΣ": "ΠΕ Δυτικής Αττικής", "ΑΣΠΡΟΠΥΡΓΟΥ": "ΠΕ Δυτικής Αττικής",
+    "ΜΑΝΔΡΑΣ-ΕΙΔΥΛΛΙΑΣ": "ΠΕ Δυτικής Αττικής", "ΜΕΓΑΡΕΩΝ": "ΠΕ Δυτικής Αττικής",
+    # ΠΕ Θεσσαλονίκης
+    "ΘΕΣΣΑΛΟΝΙΚΗΣ": "ΠΕ Θεσσαλονίκης", "ΚΑΛΑΜΑΡΙΑΣ": "ΠΕ Θεσσαλονίκης",
+    "ΠΑΥΛΟΥ ΜΕΛΑ": "ΠΕ Θεσσαλονίκης", "ΚΟΡΔΕΛΙΟΥ-ΕΥΟΣΜΟΥ": "ΠΕ Θεσσαλονίκης",
+    "ΝΕΑΠΟΛΕΩΣ-ΣΥΚΕΩΝ": "ΠΕ Θεσσαλονίκης", "ΑΜΠΕΛΟΚΗΠΩΝ-ΜΕΝΕΜΕΝΗΣ": "ΠΕ Θεσσαλονίκης",
+    "ΘΕΡΜΗΣ": "ΠΕ Θεσσαλονίκης", "ΔΕΛΤΑ": "ΠΕ Θεσσαλονίκης",
+    "ΩΡΑΙΟΚΑΣΤΡΟΥ": "ΠΕ Θεσσαλονίκης", "ΧΟΡΤΙΑΤΗ": "ΠΕ Θεσσαλονίκης",
+    "ΠΥΛΑΙΑΣ-ΧΟΡΤΙΑΤΗ": "ΠΕ Θεσσαλονίκης",
+    # ΠΕ Χαλκιδικής
+    "ΠΟΛΥΓΥΡΟΥ": "ΠΕ Χαλκιδικής", "ΚΑΣΣΑΝΔΡΑΣ": "ΠΕ Χαλκιδικής", "ΣΙΘΩΝΙΑΣ": "ΠΕ Χαλκιδικής",
+    "ΑΡΙΣΤΟΤΕΛΗ": "ΠΕ Χαλκιδικής",
+    # ΠΕ Κιλκίς
+    "ΚΙΛΚΙΣ": "ΠΕ Κιλκίς",
+    # ΠΕ Πέλλας
+    "ΕΔΕΣΣΗΣ": "ΠΕ Πέλλας", "ΑΛΕΞΑΝΔΡΕΙΑΣ": "ΠΕ Ημαθίας",
+    # ΠΕ Ημαθίας
+    "ΒΕΡΟΙΑΣ": "ΠΕ Ημαθίας", "ΝΑΟΥΣΑΣ": "ΠΕ Ημαθίας",
+    # ΠΕ Πιερίας
+    "ΚΑΤΕΡΙΝΗΣ": "ΠΕ Πιερίας",
+    # ΠΕ Σερρών
+    "ΣΕΡΡΩΝ": "ΠΕ Σερρών",
+    # ΠΕ Λάρισας
+    "ΛΑΡΙΣΑΙΩΝ": "ΠΕ Λάρισας", "ΛΑΡΙΣΑΣ": "ΠΕ Λάρισας", "ΤΥΡΝΑΒΟΥ": "ΠΕ Λάρισας",
+    # ΠΕ Μαγνησίας
+    "ΒΟΛΟΥ": "ΠΕ Μαγνησίας", "ΝΕΑΣ ΙΩΝΙΑΣ ΜΑΓΝΗΣΙΑΣ": "ΠΕ Μαγνησίας",
+    "ΑΛΜΥΡΟΥ": "ΠΕ Μαγνησίας", "ΖΑΓΟΡΑΣ-ΜΟΥΡΕΣΙΟΥ": "ΠΕ Μαγνησίας",
+    # ΠΕ Τρικάλων
+    "ΤΡΙΚΚΑΙΩΝ": "ΠΕ Τρικάλων", "ΤΡΙΚΑΛΩΝ": "ΠΕ Τρικάλων",
+    # ΠΕ Καρδίτσας
+    "ΚΑΡΔΙΤΣΗΣ": "ΠΕ Καρδίτσας",
+    # ΠΕ Φθιώτιδας
+    "ΛΑΜΙΕΩΝ": "ΠΕ Φθιώτιδας", "ΛΑΜΙΑΣ": "ΠΕ Φθιώτιδας",
+    # ΠΕ Εύβοιας
+    "ΧΑΛΚΙΔΕΩΝ": "ΠΕ Εύβοιας", "ΧΑΛΚΙΔΑΣ": "ΠΕ Εύβοιας",
+    "ΙΣΤΙΑΙΑΣ-ΑΙΔΗΨΟΥ": "ΠΕ Εύβοιας", "ΚΑΡΥΣΤΟΥ": "ΠΕ Εύβοιας",
+    # ΠΕ Βοιωτίας
+    "ΘΗΒΑΙΩΝ": "ΠΕ Βοιωτίας", "ΛΕΒΑΔΕΩΝ": "ΠΕ Βοιωτίας", "ΟΡΧΟΜΕΝΟΥ": "ΠΕ Βοιωτίας",
+    # ΠΕ Φωκίδας
+    "ΑΜΦΙΣΣΗΣ": "ΠΕ Φωκίδας", "ΔΕΛΦΩΝ": "ΠΕ Φωκίδας",
+    # ΠΕ Κορινθίας
+    "ΚΟΡΙΝΘΙΩΝ": "ΠΕ Κορινθίας", "ΛΟΥΤΡΑΚΙΟΥ-ΠΕΡΑΧΩΡΑΣ": "ΠΕ Κορινθίας",
+    # ΠΕ Αχαΐας
+    "ΠΑΤΡΕΩΝ": "ΠΕ Αχαΐας", "ΑΙΓΙΑΛΕΙΑΣ": "ΠΕ Αχαΐας",
+    # ΠΕ Αιτωλοακαρνανίας
+    "ΑΓΡΙΝΙΟΥ": "ΠΕ Αιτωλοακαρνανίας", "ΜΕΣΟΛΟΓΓΙΟΥ": "ΠΕ Αιτωλοακαρνανίας",
+    "ΝΑΥΠΑΚΤΙΑΣ": "ΠΕ Αιτωλοακαρνανίας",
+    # ΠΕ Αρκαδίας
+    "ΤΡΙΠΟΛΗΣ": "ΠΕ Αρκαδίας",
+    # ΠΕ Μεσσηνίας
+    "ΚΑΛΑΜΑΤΑΣ": "ΠΕ Μεσσηνίας",
+    # ΠΕ Λακωνίας
+    "ΣΠΑΡΤΗΣ": "ΠΕ Λακωνίας",
+    # ΠΕ Αργολίδας
+    "ΝΑΥΠΛΙΕΩΝ": "ΠΕ Αργολίδας", "ΑΡΓΟΥΣ-ΜΥΚΗΝΩΝ": "ΠΕ Αργολίδας",
+    # ΠΕ Ιωαννίνων
+    "ΙΩΑΝΝΙΤΩΝ": "ΠΕ Ιωαννίνων",
+    # ΠΕ Καβάλας
+    "ΚΑΒΑΛΑΣ": "ΠΕ Καβάλας",
+    # ΠΕ Δράμας
+    "ΔΡΑΜΑΣ": "ΠΕ Δράμας",
+    # ΠΕ Ξάνθης
+    "ΞΑΝΘΗΣ": "ΠΕ Ξάνθης",
+    # ΠΕ Ροδόπης
+    "ΚΟΜΟΤΗΝΗΣ": "ΠΕ Ροδόπης",
+    # ΠΕ Έβρου
+    "ΑΛΕΞΑΝΔΡΟΥΠΟΛΗΣ": "ΠΕ Έβρου",
+    # ΠΕ Ηρακλείου
+    "ΗΡΑΚΛΕΙΟΥ": "ΠΕ Ηρακλείου",
+    # ΠΕ Χανίων
+    "ΧΑΝΙΩΝ": "ΠΕ Χανίων",
+    # ΠΕ Ρεθύμνης
+    "ΡΕΘΥΜΝΗΣ": "ΠΕ Ρεθύμνης",
+    # ΠΕ Λασιθίου
+    "ΑΓΙΟΥ ΝΙΚΟΛΑΟΥ": "ΠΕ Λασιθίου",
+    # Νησιά
+    "ΡΟΔΟΥ": "ΠΕ Ρόδου", "ΜΥΤΙΛΗΝΗΣ": "ΠΕ Λέσβου", "ΧΙΟΥ": "ΠΕ Χίου",
+    "ΣΑΜΟΥ": "ΠΕ Σάμου", "ΚΕΡΚΥΡΑΣ": "ΠΕ Κέρκυρας", "ΖΑΚΥΝΘΟΥ": "ΠΕ Ζακύνθου",
+    "ΚΕΦΑΛΛΗΝΙΑΣ": "ΠΕ Κεφαλονιάς", "ΛΕΥΚΑΔΑΣ": "ΠΕ Λευκάδας",
+    "ΣΥΡΟΥ-ΕΡΜΟΥΠΟΛΗΣ": "ΠΕ Σύρου", "ΜΥΚΟΝΟΥ": "ΠΕ Μυκόνου", "ΝΑΞΟΥ": "ΠΕ Νάξου",
+}
+
 # ═══════════════════════════════════════════════════════════════════════════════
 #  PDF PARSER (regex, no LLM)
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -494,11 +641,13 @@ def generate_map_dashboard(df: pd.DataFrame, parsed_data: list, output_path: Pat
         area = parsed.get("building_area_m2") or row.get("est_floor_area_m2", 0)
         area = float(area) if area else 0
 
+        concrete = float(row.get("concrete_m3", 0)) if pd.notna(row.get("concrete_m3")) else round(cement / 0.3, 1)
         markers.append({
             "lat": round(lat, 5),
             "lng": round(lng, 5),
             "ada": ada,
             "cem": round(cement, 1),
+            "m3": round(concrete, 1),
             "area": round(area, 0),
             "desc": str(row.get("subject", ""))[:120],
             "date": str(row.get("issue_date", ""))[:10],
@@ -542,6 +691,8 @@ def generate_map_dashboard(df: pd.DataFrame, parsed_data: list, output_path: Pat
             "muni": muni,
             "city": city,
             "street": parsed.get("street", ""),
+            "m3": round(float(row.get("concrete_m3", 0)), 1) if pd.notna(row.get("concrete_m3")) else 0,
+            "pe": MUNICIPALITY_TO_PE.get(muni.upper().strip() if muni else "", ""),
         })
 
     # Sort by cement desc
@@ -551,12 +702,19 @@ def generate_map_dashboard(df: pd.DataFrame, parsed_data: list, output_path: Pat
     # KPIs
     total = len(df)
     total_cement = df["cement_tonnes"].sum()
+    total_concrete = round(df["concrete_m3"].sum()) if "concrete_m3" in df.columns else round(total_cement / 0.3)
     geocoded_cement = sum(m["cem"] for m in markers)
     new_builds = len(df[df["construction"] == "New Build"])
     with_engineer = sum(1 for t in table_data if t["eng"])
 
+    # Date range for slider
+    all_dates = sorted({t["date"] for t in table_data if t["date"] and t["date"] != "NaT"})
+    date_min = all_dates[0] if all_dates else "2026-01-01"
+    date_max = all_dates[-1] if all_dates else "2026-12-31"
+
     markers_json = json.dumps(markers, ensure_ascii=False)
     table_json = json.dumps(table_data, ensure_ascii=False)
+    plants_json = json.dumps(HERACLES_PLANTS, ensure_ascii=False)
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -610,7 +768,7 @@ def generate_map_dashboard(df: pd.DataFrame, parsed_data: list, output_path: Pat
   .tab-content.active {{ display: block; }}
 
   /* Map */
-  #map {{ height: calc(100vh - 280px); min-height: 500px; }}
+  #map {{ height: calc(100vh - 340px); min-height: 500px; }}
   .map-container {{
     margin: 1rem 2rem; border-radius: 10px; overflow: hidden;
     border: 1px solid var(--border);
@@ -720,29 +878,141 @@ def generate_map_dashboard(df: pd.DataFrame, parsed_data: list, output_path: Pat
     text-align: center; padding: 1rem; color: var(--dim); font-size: 0.65rem;
     border-top: 1px solid var(--border);
   }}
+
+  /* Territories tab */
+  .territory-wrap {{ margin: 1rem 2rem; }}
+  .territory-header {{ display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.25rem; background: var(--card); border: 1px solid var(--border); border-radius: 10px 10px 0 0; }}
+  .territory-header h3 {{ font-size: 0.9rem; font-weight: 700; }}
+  .territory-table {{ width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--border); border-top: none; border-radius: 0 0 10px 10px; overflow: hidden; }}
+  .territory-table th {{ padding: 0.6rem 0.75rem; background: var(--card2); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dim); border-bottom: 1px solid var(--border); text-align: left; }}
+  .territory-table td {{ padding: 0.55rem 0.75rem; border-bottom: 1px solid rgba(30,41,59,0.4); font-size: 0.78rem; }}
+  .territory-table tr:hover {{ background: rgba(59,130,246,0.05); }}
+  .mgr-input {{ background: var(--card2); border: 1px solid var(--border); color: var(--text); border-radius: 5px; padding: 0.25rem 0.5rem; font-size: 0.75rem; width: 140px; }}
+  .mgr-input:focus {{ border-color: var(--cyan); outline: none; }}
+  .pe-bar {{ height: 8px; border-radius: 4px; background: var(--cyan); display: inline-block; }}
+
+  /* Formula config panel */
+  #formulaPanel {{
+    display: none; position: fixed; top: 0; right: 0; width: 360px; height: 100%;
+    background: var(--card); border-left: 1px solid var(--border); z-index: 900;
+    overflow-y: auto; padding: 1.5rem; box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+  }}
+  #formulaPanel.open {{ display: block; }}
+  #formulaPanel h3 {{ font-size: 0.9rem; color: var(--cyan); margin-bottom: 1rem; }}
+  .fp-section {{ background: var(--card2); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }}
+  .fp-section h4 {{ font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--dim); margin-bottom: 0.75rem; }}
+  .fp-row {{ display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; font-size: 0.78rem; }}
+  .fp-row label {{ min-width: 110px; color: var(--muted); }}
+  .fp-row input[type=range] {{ flex: 1; accent-color: var(--cyan); cursor: pointer; }}
+  .fp-row .fp-val {{ min-width: 45px; text-align: right; font-weight: 700; color: var(--cyan); font-size: 0.75rem; }}
+  .fp-close {{ position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--dim); font-size: 1.3rem; cursor: pointer; }}
+  .fp-close:hover {{ color: var(--text); }}
+  .fp-note {{ font-size: 0.7rem; color: var(--dim); line-height: 1.5; margin-bottom: 0.5rem; }}
+
+  @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
+
+  /* Date range slider */
+  .date-filter {{
+    padding: 0.85rem 2rem; background: var(--card); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+  }}
+  .date-filter .lbl {{ color: var(--muted); font-size: 0.72rem; white-space: nowrap; }}
+  .date-filter .date-val {{
+    color: var(--cyan); font-weight: 700; font-size: 0.78rem; min-width: 80px; text-align: center;
+  }}
+  .slider-wrap {{
+    position: relative; flex: 1; min-width: 200px; height: 28px; display: flex; align-items: center;
+  }}
+  .slider-wrap input[type=range] {{
+    position: absolute; width: 100%; height: 4px; background: transparent;
+    pointer-events: none; appearance: none; -webkit-appearance: none; outline: none;
+  }}
+  .slider-wrap input[type=range]::-webkit-slider-thumb {{
+    appearance: none; -webkit-appearance: none; width: 16px; height: 16px;
+    border-radius: 50%; background: var(--cyan); border: 2px solid var(--bg);
+    pointer-events: all; cursor: pointer; box-shadow: 0 0 4px rgba(6,182,212,0.5);
+  }}
+  .slider-wrap input[type=range]::-moz-range-thumb {{
+    width: 16px; height: 16px; border-radius: 50%; background: var(--cyan);
+    border: 2px solid var(--bg); pointer-events: all; cursor: pointer;
+  }}
+  .slider-track {{
+    position: absolute; width: 100%; height: 4px; border-radius: 2px;
+    background: var(--border);
+  }}
+  .slider-range {{
+    position: absolute; height: 4px; border-radius: 2px; background: var(--cyan);
+  }}
+  .date-filter .reset-btn {{
+    background: none; border: 1px solid var(--border); color: var(--dim);
+    border-radius: 5px; padding: 0.25rem 0.6rem; font-size: 0.7rem; cursor: pointer;
+    white-space: nowrap;
+  }}
+  .date-filter .reset-btn:hover {{ border-color: var(--cyan); color: var(--cyan); }}
 </style>
 </head>
 <body>
 
-<div class="header">
-  <h1>Cement Demand Intelligence // <span>Greece</span></h1>
-  <div class="sub">
-    {total:,} permits, 2026-01-01 to today | Est. <strong>{total_cement:,.0f} tonnes</strong> cement demand |
-    {geocoded:,} geocoded on map | {with_engineer:,} with engineer data | Source: Diavgeia (real-time)
+<div class="header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+  <div>
+    <h1>Cement Demand Intelligence // <span>Greece</span></h1>
+    <div class="sub">
+      {total:,} άδειες | Est. <strong>{total_concrete:,.0f} m³ μπετόν</strong> (<strong>{total_cement:,.0f}t</strong> τσιμέντο) |
+      {geocoded:,} στο χάρτη | {with_engineer:,} με μηχανικό | Πηγή: Diavgeia
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:0.75rem">
+    <button id="refreshBtn" class="btn" onclick="startRefresh()" style="background:var(--green);padding:0.6rem 1.25rem;font-size:0.82rem;white-space:nowrap">
+      Refresh Data
+    </button>
+  </div>
+</div>
+
+<!-- Refresh Modal -->
+<div class="overlay" id="refreshOverlay" onclick="if(event.target===this)closeRefresh()">
+  <div class="overlay-card" style="max-width:550px">
+    <button class="close" onclick="closeRefresh()">&times;</button>
+    <h2 id="refreshTitle" style="font-size:1rem">Checking for new permits...</h2>
+    <div id="refreshEstimate" style="margin:1rem 0;font-size:0.85rem;color:var(--muted)"></div>
+    <div id="refreshProgress" style="display:none">
+      <div style="background:var(--card2);border-radius:6px;height:8px;overflow:hidden;margin:1rem 0">
+        <div id="refreshBar" style="height:100%;background:var(--green);width:0%;transition:width 0.5s ease;border-radius:6px"></div>
+      </div>
+      <div id="refreshLog" style="font-family:monospace;font-size:0.72rem;color:var(--muted);max-height:180px;overflow-y:auto;background:var(--card2);border-radius:6px;padding:0.75rem;margin-top:0.75rem"></div>
+    </div>
+    <div id="refreshActions" style="margin-top:1rem;display:flex;gap:0.75rem">
+      <button id="refreshConfirmBtn" class="btn" style="background:var(--green)" onclick="confirmRefresh()" disabled>Loading estimate...</button>
+      <button class="btn" style="background:var(--card2);border:1px solid var(--border)" onclick="closeRefresh()">Cancel</button>
+    </div>
   </div>
 </div>
 
 <div class="kpi-row">
-  <div class="kpi"><div class="val" style="color:var(--cyan)">{total_cement:,.0f}t</div><div class="lbl">Total Cement</div></div>
-  <div class="kpi"><div class="val" style="color:var(--text)">{total:,}</div><div class="lbl">Total Permits</div></div>
-  <div class="kpi"><div class="val" style="color:var(--green)">{new_builds}</div><div class="lbl">New Builds</div></div>
-  <div class="kpi"><div class="val" style="color:var(--orange)">{geocoded:,}</div><div class="lbl">Geocoded</div></div>
-  <div class="kpi"><div class="val" style="color:var(--purple)">{with_engineer:,}</div><div class="lbl">With Engineer</div></div>
+  <div class="kpi"><div class="val" style="color:var(--cyan)">{total_concrete:,.0f} m³</div><div class="lbl">Σύνολο Μπετόν</div></div>
+  <div class="kpi"><div class="val" style="color:var(--orange)">{total_cement:,.0f}t</div><div class="lbl">Τσιμέντο (εκτ.)</div></div>
+  <div class="kpi"><div class="val" style="color:var(--text)">{total:,}</div><div class="lbl">Άδειες</div></div>
+  <div class="kpi"><div class="val" style="color:var(--green)">{new_builds}</div><div class="lbl">Ανεγέρσεις</div></div>
+  <div class="kpi"><div class="val" style="color:var(--purple)">{with_engineer:,}</div><div class="lbl">Με Μηχανικό</div></div>
+</div>
+
+<div class="date-filter">
+  <span class="lbl">Date range</span>
+  <span class="date-val" id="dateFromLabel">{date_min}</span>
+  <div class="slider-wrap">
+    <div class="slider-track"></div>
+    <div class="slider-range" id="sliderRange"></div>
+    <input type="range" id="sliderFrom" min="0" max="100" value="0" oninput="onSlider()">
+    <input type="range" id="sliderTo"   min="0" max="100" value="100" oninput="onSlider()">
+  </div>
+  <span class="date-val" id="dateToLabel">{date_max}</span>
+  <button class="reset-btn" onclick="resetDateFilter()">Reset</button>
+  <span id="dateFilterCount" style="color:var(--dim);font-size:0.72rem"></span>
 </div>
 
 <div class="tabs">
   <div class="tab active" onclick="switchTab('map')">Map</div>
   <div class="tab" onclick="switchTab('table')">Permit Register</div>
+  <div class="tab" onclick="switchTab('territories')">Territories</div>
 </div>
 
 <!-- MAP TAB -->
@@ -771,6 +1041,13 @@ def generate_map_dashboard(df: pd.DataFrame, parsed_data: list, output_path: Pat
     <label style="margin-left:0.5rem">
       <input type="checkbox" id="heatToggle" onchange="toggleHeat()"> Heatmap
     </label>
+    <label style="margin-left:0.5rem">
+      <input type="checkbox" id="plantsToggle" onchange="togglePlants()" checked> Herakles Plants
+    </label>
+    <label style="margin-left:0.5rem">
+      <input type="checkbox" id="circlesToggle" onchange="toggleCircles()"> 60km Zones
+    </label>
+    <button class="btn" onclick="toggleFormulaPanel()" style="font-size:0.72rem;background:var(--card2);border:1px solid var(--border);color:var(--muted)">Formula Config</button>
     <div class="legend">
       <div class="legend-item"><span class="legend-dot" style="background:var(--red)"></span> ≥30t</div>
       <div class="legend-item"><span class="legend-dot" style="background:var(--orange)"></span> ≥15t</div>
@@ -823,6 +1100,59 @@ def generate_map_dashboard(df: pd.DataFrame, parsed_data: list, output_path: Pat
   </div>
 </div>
 
+<!-- Territories Tab -->
+<div id="tab-territories" class="tab-content">
+  <div class="territory-wrap">
+    <div class="territory-header">
+      <h3>Διαχείριση Εδαφών — Περιφερειακές Ενότητες</h3>
+      <div style="font-size:0.72rem;color:var(--dim)">Κλικ για ανάθεση Υπεύθυνου Πωλήσεων · Αποθηκεύεται αυτόματα</div>
+    </div>
+    <table class="territory-table">
+      <thead><tr>
+        <th>Περιφερειακή Ενότητα</th>
+        <th>Άδειες</th>
+        <th>Μπετόν (m³)</th>
+        <th>Ανεγέρσεις</th>
+        <th>Μπετόν / Άδεια</th>
+        <th style="min-width:160px">Υπεύθυνος Πωλήσεων</th>
+      </tr></thead>
+      <tbody id="territoryTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Formula Config Panel -->
+<div id="formulaPanel">
+  <button class="fp-close" onclick="toggleFormulaPanel()">&times;</button>
+  <h3>Formula Configuration — Μπετόν</h3>
+  <div class="fp-note">Ρυθμίστε τις παραμέτρους εκτίμησης όγκου μπετόν. Οι αλλαγές εφαρμόζονται άμεσα στα δεδομένα.</div>
+
+  <div class="fp-section">
+    <h4>Ένταση Σκυροδέματος (m³ / m² δαπέδου)</h4>
+    <div class="fp-row"><label>Κατοικία</label><input type="range" id="fpRes" min="5" max="35" value="15" step="1" oninput="recomputeFormula()"><span class="fp-val" id="fvRes">0.15</span></div>
+    <div class="fp-row"><label>Τουρισμός</label><input type="range" id="fpTou" min="5" max="35" value="18" step="1" oninput="recomputeFormula()"><span class="fp-val" id="fvTou">0.18</span></div>
+    <div class="fp-row"><label>Εμπορικό</label><input type="range" id="fpCom" min="5" max="35" value="20" step="1" oninput="recomputeFormula()"><span class="fp-val" id="fvCom">0.20</span></div>
+    <div class="fp-row"><label>Βιομηχανικό</label><input type="range" id="fpInd" min="5" max="35" value="22" step="1" oninput="recomputeFormula()"><span class="fp-val" id="fvInd">0.22</span></div>
+    <div class="fp-row"><label>Δημόσιο</label><input type="range" id="fpPub" min="5" max="35" value="20" step="1" oninput="recomputeFormula()"><span class="fp-val" id="fvPub">0.20</span></div>
+    <div class="fp-row"><label>Άλλο</label><input type="range" id="fpOth" min="5" max="35" value="16" step="1" oninput="recomputeFormula()"><span class="fp-val" id="fvOth">0.16</span></div>
+  </div>
+
+  <div class="fp-section">
+    <h4>Πολλαπλασιαστές</h4>
+    <div class="fp-row"><label>Υπόγειο (+%)</label><input type="range" id="fpBsmt" min="10" max="80" value="40" step="5" oninput="recomputeFormula()"><span class="fp-val" id="fvBsmt">+40%</span></div>
+    <div class="fp-row"><label>Τσιμέντο/Μπετόν</label><input type="range" id="fpCemRatio" min="200" max="400" value="300" step="10" oninput="recomputeFormula()"><span class="fp-val" id="fvCemRatio">300 kg/m³</span></div>
+  </div>
+
+  <div class="fp-section">
+    <h4>Εκτιμώμενοι Σύνολοι</h4>
+    <div style="font-size:0.82rem">
+      <div style="display:flex;justify-content:space-between;padding:0.3rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Σύνολο Μπετόν</span><span id="fpTotalM3" style="color:var(--cyan);font-weight:700">—</span></div>
+      <div style="display:flex;justify-content:space-between;padding:0.3rem 0"><span style="color:var(--muted)">Σύνολο Τσιμέντο</span><span id="fpTotalCem" style="color:var(--orange);font-weight:700">—</span></div>
+    </div>
+  </div>
+  <button class="btn" style="width:100%;margin-top:0.5rem;font-size:0.78rem" onclick="resetFormula()">Reset Defaults</button>
+</div>
+
 <!-- Detail Overlay -->
 <div class="overlay" id="overlay" onclick="if(event.target===this)closeOverlay()">
   <div class="overlay-card" id="overlayCard"></div>
@@ -836,6 +1166,7 @@ def generate_map_dashboard(df: pd.DataFrame, parsed_data: list, output_path: Pat
 <script>
 const MARKERS = {markers_json};
 const TABLE = {table_json};
+const HERACLES_PLANTS = {plants_json};
 
 // ── Map ──
 let map, markerLayer, heatLayer;
@@ -846,6 +1177,8 @@ const views = {{
   crete: [35.24, 24.90, 9],
 }};
 
+let plantLayer, circleLayer;
+
 function initMap() {{
   map = L.map('map', {{ zoomControl: true }}).setView([38.5, 24.0], 6);
   L.tileLayer('https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{
@@ -853,7 +1186,50 @@ function initMap() {{
     maxZoom: 18,
   }}).addTo(map);
   markerLayer = L.layerGroup().addTo(map);
+  plantLayer = L.layerGroup().addTo(map);
+  circleLayer = L.layerGroup();
+
+  for (const pl of HERACLES_PLANTS) {{
+    const isCement = pl.type === 'Cement';
+    const color = isCement ? '#ef4444' : '#f59e0b';
+    const icon = L.divIcon({{
+      html: '<div style="background:' + color + ';border:2px solid #fff;width:' + (isCement?14:10) + 'px;height:' + (isCement?14:10) + 'px;border-radius:' + (isCement?'2px':'50%') + ';box-shadow:0 0 6px rgba(0,0,0,0.5)"></div>',
+      iconSize: [isCement?14:10, isCement?14:10],
+      iconAnchor: [isCement?7:5, isCement?7:5],
+      className: ''
+    }});
+    L.marker([pl.lat, pl.lng], {{icon}}).addTo(plantLayer)
+      .bindPopup('<div style="font-size:12px;font-weight:700;color:#e2e8f0;background:#1a2234;padding:0.4rem 0.6rem;border-radius:6px">' + pl.name + '<br><span style="color:#f59e0b;font-size:10px">' + pl.type + '</span></div>');
+  }}
+
   updateMap();
+}}
+
+function togglePlants() {{
+  if (document.getElementById('plantsToggle').checked) {{
+    plantLayer.addTo(map);
+  }} else {{
+    map.removeLayer(plantLayer);
+  }}
+}}
+
+function toggleCircles() {{
+  if (document.getElementById('circlesToggle').checked) {{
+    circleLayer.clearLayers();
+    for (const pl of HERACLES_PLANTS) {{
+      L.circle([pl.lat, pl.lng], {{
+        radius: 60000,
+        color: pl.type === 'Cement' ? '#ef4444' : '#f59e0b',
+        fillColor: pl.type === 'Cement' ? '#ef4444' : '#f59e0b',
+        fillOpacity: 0.04,
+        weight: 1,
+        dashArray: '4 4',
+      }}).addTo(circleLayer);
+    }}
+    circleLayer.addTo(map);
+  }} else {{
+    map.removeLayer(circleLayer);
+  }}
 }}
 
 function cemColor(cem) {{
@@ -874,7 +1250,7 @@ function updateMap() {{
   const colorBy = document.getElementById('mapColor').value;
   markerLayer.clearLayers();
 
-  const filtered = MARKERS.filter(m => m.cem >= minCem);
+  const filtered = MARKERS.filter(m => m.cem >= minCem && (!dateFrom || (m.date >= dateFrom && m.date <= dateTo)));
 
   for (const m of filtered) {{
     const color = colorBy === 'use' ? (useColors[m.use] || '#64748b') : cemColor(m.cem);
@@ -931,11 +1307,58 @@ function toggleHeat() {{
 // ── Tabs ──
 function switchTab(name) {{
   document.querySelectorAll('.tab').forEach((t, i) => {{
-    t.classList.toggle('active', (name === 'map' && i === 0) || (name === 'table' && i === 1));
+    t.classList.toggle('active',
+      (name==='map'&&i===0)||(name==='table'&&i===1)||(name==='territories'&&i===2));
   }});
-  document.getElementById('tab-map').classList.toggle('active', name === 'map');
-  document.getElementById('tab-table').classList.toggle('active', name === 'table');
+  ['map','table','territories'].forEach(n => {{
+    document.getElementById('tab-'+n).classList.toggle('active', name===n);
+  }});
   if (name === 'map') setTimeout(() => map.invalidateSize(), 100);
+  if (name === 'territories' && !territoriesRendered) renderTerritories();
+}}
+
+// ── Date slider ──
+const ALL_DATES = [...new Set([...MARKERS.map(m => m.date), ...TABLE.map(t => t.date)])]
+  .filter(d => d && /^\d{{4}}-\d{{2}}-\d{{2}}$/.test(d)).sort();
+const DATE_MIN = ALL_DATES[0] || '{date_min}';
+const DATE_MAX = ALL_DATES[ALL_DATES.length - 1] || '{date_max}';
+
+// null means "no filter active" — show everything
+let dateFrom = null, dateTo = null;
+
+function dateAtPct(pct) {{
+  const idx = Math.round((pct / 100) * (ALL_DATES.length - 1));
+  return ALL_DATES[Math.min(Math.max(idx, 0), ALL_DATES.length - 1)];
+}}
+
+function onSlider() {{
+  let lo = parseFloat(document.getElementById('sliderFrom').value);
+  let hi = parseFloat(document.getElementById('sliderTo').value);
+  if (lo > hi) {{ lo = hi; document.getElementById('sliderFrom').value = lo; }}
+  dateFrom = dateAtPct(lo);
+  dateTo   = dateAtPct(hi);
+  document.getElementById('dateFromLabel').textContent = dateFrom || DATE_MIN;
+  document.getElementById('dateToLabel').textContent   = dateTo   || DATE_MAX;
+  const range = document.getElementById('sliderRange');
+  range.style.left  = lo + '%';
+  range.style.width = (hi - lo) + '%';
+  filterTable();
+  updateMap();
+  const count = TABLE.filter(r => !dateFrom || (r.date >= dateFrom && r.date <= dateTo)).length;
+  document.getElementById('dateFilterCount').textContent = count.toLocaleString() + ' permits';
+}}
+
+function resetDateFilter() {{
+  dateFrom = null; dateTo = null;
+  document.getElementById('sliderFrom').value = 0;
+  document.getElementById('sliderTo').value   = 100;
+  document.getElementById('dateFromLabel').textContent = DATE_MIN;
+  document.getElementById('dateToLabel').textContent   = DATE_MAX;
+  const range = document.getElementById('sliderRange');
+  range.style.left = '0%'; range.style.width = '100%';
+  document.getElementById('dateFilterCount').textContent = TABLE.length.toLocaleString() + ' permits';
+  filterTable();
+  updateMap();
 }}
 
 // ── Table ──
@@ -953,6 +1376,7 @@ function filterTable() {{
     r.cem >= minCem &&
     (!use || r.use === use) &&
     (!con || r.con === con) &&
+    (!dateFrom || (r.date >= dateFrom && r.date <= dateTo)) &&
     (!search || r.sub.toUpperCase().includes(search) || r.ada.toUpperCase().includes(search) ||
      r.eng.toUpperCase().includes(search) || r.muni.toUpperCase().includes(search))
   );
@@ -1052,6 +1476,13 @@ function showDetail(ada) {{
   if (r.eng) {{
     html += '<div class="detail-row"><span class="dl">Name</span><span class="dv">' + r.eng + '</span></div>';
     if (r.tee) html += '<div class="detail-row"><span class="dl">TEE #</span><span class="dv">' + r.tee + '</span></div>';
+    const searchQ = encodeURIComponent('"' + r.eng + '" μηχανικός τηλέφωνο' + (r.muni ? ' ' + r.muni : ''));
+    html += '<div style="margin-top:0.75rem">';
+    html += '<a href="https://www.google.com/search?q=' + searchQ + '" target="_blank" class="btn" ' +
+      'style="font-size:0.72rem;display:inline-flex;align-items:center;gap:0.35rem;background:var(--green);text-decoration:none">' +
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.22 1.18 2 2 0 012.18 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.29 6.29l1.28-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>' +
+      'Find Contact</a>';
+    html += '</div>';
   }} else {{
     html += '<div style="color:var(--dim)">Parse PDF for engineer data</div>';
   }}
@@ -1085,9 +1516,238 @@ function exportCSV() {{
   a.click();
 }}
 
+// ── Refresh ──
+const REFRESH_API = 'http://localhost:8787';
+let refreshPollTimer = null;
+
+function startRefresh() {{
+  document.getElementById('refreshOverlay').classList.add('show');
+  document.getElementById('refreshTitle').textContent = 'Checking for new permits...';
+  document.getElementById('refreshEstimate').innerHTML = '<span style="color:var(--dim)">Probing Diavgeia API...</span>';
+  document.getElementById('refreshProgress').style.display = 'none';
+  document.getElementById('refreshConfirmBtn').disabled = true;
+  document.getElementById('refreshConfirmBtn').textContent = 'Loading estimate...';
+
+  fetch(REFRESH_API + '/api/estimate')
+    .then(r => r.json())
+    .then(est => {{
+      if (est.error) {{
+        document.getElementById('refreshTitle').textContent = 'Could not reach refresh server';
+        document.getElementById('refreshEstimate').innerHTML =
+          '<div style="color:var(--red);margin-bottom:0.75rem">Start the refresh server first:</div>' +
+          '<code style="background:var(--card2);padding:0.5rem 0.75rem;border-radius:6px;display:block;color:var(--cyan)">python incremental_refresh.py</code>';
+        return;
+      }}
+      document.getElementById('refreshTitle').textContent =
+        est.estimated_new_permits === 0 ? 'Data is up to date' : est.estimated_new_permits + ' new permits found';
+
+      let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem 1.5rem;margin-bottom:1rem">';
+      html += '<div>Existing permits</div><div style="color:var(--text);font-weight:600">' + est.existing_permits.toLocaleString() + '</div>';
+      html += '<div>Last scraped</div><div style="color:var(--text);font-weight:600">' + est.last_scrape_date + '</div>';
+      html += '<div>Estimated new</div><div style="color:var(--green);font-weight:600">' + est.estimated_new_permits.toLocaleString() + '</div>';
+      html += '<div>Parsed PDFs cached</div><div style="color:var(--text);font-weight:600">' + est.existing_parsed.toLocaleString() + '</div>';
+      html += '</div>';
+
+      if (est.estimated_new_permits > 0) {{
+        html += '<div style="background:var(--card2);border-radius:8px;padding:0.75rem;margin-bottom:0.5rem">';
+        html += '<div style="font-weight:600;margin-bottom:0.5rem;color:var(--cyan)">Estimated time: ~' + est.estimated_minutes + ' min</div>';
+        html += '<div style="font-size:0.72rem;color:var(--dim)">';
+        html += 'API scrape: ~' + est.breakdown.api_scrape_secs + 's · ';
+        html += 'PDF download: ~' + est.breakdown.pdf_download_secs + 's · ';
+        html += 'Geocode: ~' + est.breakdown.geocode_secs + 's · ';
+        html += 'Dashboard: ~' + est.breakdown.dashboard_secs + 's';
+        html += '</div></div>';
+      }}
+
+      document.getElementById('refreshEstimate').innerHTML = html;
+      const btn = document.getElementById('refreshConfirmBtn');
+      if (est.estimated_new_permits > 0) {{
+        btn.disabled = false;
+        btn.textContent = 'Start Refresh (' + est.estimated_new_permits + ' new)';
+      }} else {{
+        btn.disabled = false;
+        btn.textContent = 'Force Refresh';
+      }}
+    }})
+    .catch(err => {{
+      document.getElementById('refreshTitle').textContent = 'Refresh server not running';
+      document.getElementById('refreshEstimate').innerHTML =
+        '<div style="color:var(--red);margin-bottom:0.75rem">Start the refresh server:</div>' +
+        '<code style="background:var(--card2);padding:0.5rem 0.75rem;border-radius:6px;display:block;color:var(--cyan)">python incremental_refresh.py</code>' +
+        '<div style="margin-top:0.75rem;color:var(--dim);font-size:0.75rem">Then open <strong>http://localhost:8787</strong> in your browser.</div>';
+    }});
+}}
+
+function confirmRefresh() {{
+  document.getElementById('refreshConfirmBtn').disabled = true;
+  document.getElementById('refreshConfirmBtn').textContent = 'Running...';
+  document.getElementById('refreshProgress').style.display = 'block';
+  document.getElementById('refreshLog').innerHTML = '';
+  document.getElementById('refreshBar').style.width = '0%';
+
+  fetch(REFRESH_API + '/api/refresh', {{ method: 'POST' }})
+    .then(r => r.json())
+    .then(data => {{
+      if (data.error) {{
+        document.getElementById('refreshLog').innerHTML += '<div style="color:var(--red)">' + data.error + '</div>';
+        return;
+      }}
+      // Start polling for progress
+      refreshPollTimer = setInterval(pollRefreshStatus, 1500);
+    }})
+    .catch(err => {{
+      document.getElementById('refreshLog').innerHTML += '<div style="color:var(--red)">Failed to start: ' + err + '</div>';
+    }});
+}}
+
+function pollRefreshStatus() {{
+  fetch(REFRESH_API + '/api/status')
+    .then(r => r.json())
+    .then(status => {{
+      const log = document.getElementById('refreshLog');
+      log.innerHTML = status.progress.map(p =>
+        '<div>' + p.time + ' [' + p.step + '] ' + p.message + '</div>'
+      ).join('');
+      log.scrollTop = log.scrollHeight;
+
+      // Update progress bar
+      const lastPct = status.progress.length > 0 ? status.progress[status.progress.length - 1].pct : 0;
+      if (lastPct > 0) {{
+        document.getElementById('refreshBar').style.width = lastPct + '%';
+      }}
+
+      if (!status.running) {{
+        clearInterval(refreshPollTimer);
+        if (status.result && status.result.success) {{
+          document.getElementById('refreshTitle').textContent = 'Refresh Complete!';
+          document.getElementById('refreshBar').style.width = '100%';
+          document.getElementById('refreshBar').style.background = 'var(--green)';
+          const btn = document.getElementById('refreshConfirmBtn');
+          btn.textContent = 'Reload Dashboard';
+          btn.disabled = false;
+          btn.onclick = () => window.location.reload();
+          btn.style.background = 'var(--cyan)';
+        }} else if (status.error) {{
+          document.getElementById('refreshTitle').textContent = 'Refresh Failed';
+          document.getElementById('refreshBar').style.background = 'var(--red)';
+        }}
+      }}
+    }})
+    .catch(() => {{}});
+}}
+
+function closeRefresh() {{
+  document.getElementById('refreshOverlay').classList.remove('show');
+  if (refreshPollTimer) clearInterval(refreshPollTimer);
+}}
+
+// ── Formula Config ──
+function toggleFormulaPanel() {{
+  document.getElementById('formulaPanel').classList.toggle('open');
+  recomputeFormula();
+}}
+
+function recomputeFormula() {{
+  const getV = id => parseFloat(document.getElementById(id).value);
+  const intensities = {{
+    Residential: getV('fpRes') / 100,
+    Tourism: getV('fpTou') / 100,
+    Commercial: getV('fpCom') / 100,
+    Industrial: getV('fpInd') / 100,
+    Public: getV('fpPub') / 100,
+  }};
+  const bsmtPct = getV('fpBsmt') / 100;
+  const cemRatio = getV('fpCemRatio');
+
+  document.getElementById('fvRes').textContent = (getV('fpRes')/100).toFixed(2);
+  document.getElementById('fvTou').textContent = (getV('fpTou')/100).toFixed(2);
+  document.getElementById('fvCom').textContent = (getV('fpCom')/100).toFixed(2);
+  document.getElementById('fvInd').textContent = (getV('fpInd')/100).toFixed(2);
+  document.getElementById('fvPub').textContent = (getV('fpPub')/100).toFixed(2);
+  document.getElementById('fvOth').textContent = (getV('fpOth')/100).toFixed(2);
+  document.getElementById('fvBsmt').textContent = '+' + getV('fpBsmt') + '%';
+  document.getElementById('fvCemRatio').textContent = cemRatio + ' kg/m³';
+
+  let totalM3 = 0;
+  for (const r of TABLE) {{
+    if (r.m3 && r.m3 > 0) {{ totalM3 += r.m3; continue; }}
+    const intens = intensities[r.use] || (getV('fpOth')/100);
+    totalM3 += (r.area || 0) * intens * (1 + bsmtPct);
+  }}
+  const totalCem = totalM3 * cemRatio / 1000;
+  document.getElementById('fpTotalM3').textContent = Math.round(totalM3).toLocaleString() + ' m³';
+  document.getElementById('fpTotalCem').textContent = Math.round(totalCem).toLocaleString() + ' t';
+}}
+
+function resetFormula() {{
+  document.getElementById('fpRes').value = 15;
+  document.getElementById('fpTou').value = 18;
+  document.getElementById('fpCom').value = 20;
+  document.getElementById('fpInd').value = 22;
+  document.getElementById('fpPub').value = 20;
+  document.getElementById('fpOth').value = 16;
+  document.getElementById('fpBsmt').value = 40;
+  document.getElementById('fpCemRatio').value = 300;
+  recomputeFormula();
+}}
+
+// ── Territories ──
+let territoriesRendered = false;
+const TERRITORY_MANAGERS = JSON.parse(localStorage.getItem('territoryManagers') || '{{}}');
+
+function saveTerritoryManagers() {{
+  localStorage.setItem('territoryManagers', JSON.stringify(TERRITORY_MANAGERS));
+}}
+
+function saveMgr(input) {{
+  const pe = input.dataset.pe;
+  TERRITORY_MANAGERS[pe] = input.value;
+  saveTerritoryManagers();
+}}
+
+function renderTerritories() {{
+  territoriesRendered = true;
+
+  // Aggregate by PE
+  const peStats = {{}};
+  for (const r of TABLE) {{
+    const pe = r.pe || '(Άγνωστη ΠΕ)';
+    if (!peStats[pe]) peStats[pe] = {{ permits: 0, m3: 0, newBuilds: 0 }};
+    peStats[pe].permits++;
+    peStats[pe].m3 += r.m3 || 0;
+    if (r.con === 'New Build') peStats[pe].newBuilds++;
+  }}
+
+  const sorted = Object.entries(peStats).sort((a, b) => b[1].m3 - a[1].m3);
+  const maxM3 = sorted.length > 0 ? sorted[0][1].m3 : 1;
+
+  const rows = sorted.map(([pe, s]) => {{
+    const barPct = Math.round((s.m3 / maxM3) * 100);
+    const perPermit = s.permits > 0 ? (s.m3 / s.permits).toFixed(1) : '—';
+    const mgr = TERRITORY_MANAGERS[pe] || '';
+    return '<tr>' +
+      '<td><strong>' + pe + '</strong></td>' +
+      '<td>' + s.permits.toLocaleString() + '</td>' +
+      '<td><span class="pe-bar" style="width:' + barPct + 'px;max-width:120px"></span> ' + Math.round(s.m3).toLocaleString() + '</td>' +
+      '<td>' + s.newBuilds.toLocaleString() + '</td>' +
+      '<td>' + perPermit + '</td>' +
+      '<td><input class="mgr-input" value="' + mgr.replace(/"/g, '&quot;') + '" placeholder="π.χ. Γ. Παπαδόπουλος" data-pe="' + pe.replace(/"/g, '&quot;') + '" onchange="saveMgr(this)"></td>' +
+      '</tr>';
+  }}).join('');
+
+  document.getElementById('territoryTbody').innerHTML = rows;
+}}
+
 // ── Init ──
 initMap();
+setTimeout(() => map.invalidateSize(), 100);
 filterTable();
+// Init slider labels/track display without filtering
+document.getElementById('dateFromLabel').textContent = DATE_MIN;
+document.getElementById('dateToLabel').textContent   = DATE_MAX;
+document.getElementById('sliderRange').style.left  = '0%';
+document.getElementById('sliderRange').style.width = '100%';
+document.getElementById('dateFilterCount').textContent = TABLE.length.toLocaleString() + ' permits';
 </script>
 </body>
 </html>"""
