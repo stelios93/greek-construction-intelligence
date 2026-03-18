@@ -3,6 +3,50 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+(function(){
+  const HASH = 'baa7f7db29220e60a485945961e2d13038f5319542661f82799e9918bf5c3c21';
+  async function sha256(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+  async function check(pw) {
+    return (await sha256(pw)) === HASH;
+  }
+  window.__pwCheck = check;
+  if (sessionStorage.getItem('auth') !== HASH) {
+    document.addEventListener('DOMContentLoaded', function() {
+      const gate = document.getElementById('pwgate');
+      if (gate) gate.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    });
+  }
+})();
+</script>
+<style>
+#pwgate {
+  display: none; position: fixed; inset: 0; z-index: 9999;
+  background: #0a0e17; align-items: center; justify-content: center;
+}
+#pwgate .box {
+  background: #111827; border: 1px solid #1e293b; border-radius: 16px;
+  padding: 2.5rem 2rem; width: 100%; max-width: 360px; text-align: center;
+}
+#pwgate h2 { font-size: 1.1rem; font-weight: 700; color: #e2e8f0; margin-bottom: 0.4rem; }
+#pwgate p { color: #64748b; font-size: 0.8rem; margin-bottom: 1.5rem; }
+#pwgate input {
+  width: 100%; background: #1a2234; border: 1px solid #1e293b; border-radius: 8px;
+  color: #e2e8f0; font-size: 0.95rem; padding: 0.65rem 1rem; text-align: center;
+  letter-spacing: 0.05em; outline: none; margin-bottom: 0.75rem;
+}
+#pwgate input:focus { border-color: #06b6d4; }
+#pwgate button {
+  width: 100%; background: #06b6d4; color: #0a0e17; border: none; border-radius: 8px;
+  padding: 0.65rem; font-size: 0.9rem; font-weight: 700; cursor: pointer;
+}
+#pwgate button:hover { filter: brightness(1.1); }
+#pwgate .err { color: #ef4444; font-size: 0.78rem; margin-top: 0.5rem; min-height: 1.2em; }
+</style>
 <title>Greek Construction — Cement Demand Map</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -203,6 +247,29 @@
 </style>
 </head>
 <body>
+<div id="pwgate">
+  <div class="box">
+    <h2>Cement Demand Intelligence</h2>
+    <p>Enter password to access</p>
+    <input type="password" id="pwinput" placeholder="Password" onkeydown="if(event.key==='Enter')unlock()">
+    <button onclick="unlock()">Enter</button>
+    <div class="err" id="pwerr"></div>
+  </div>
+</div>
+<script>
+async function unlock() {
+  const pw = document.getElementById('pwinput').value;
+  const ok = await window.__pwCheck(pw);
+  if (ok) {
+    sessionStorage.setItem('auth', 'baa7f7db29220e60a485945961e2d13038f5319542661f82799e9918bf5c3c21');
+    document.getElementById('pwgate').style.display = 'none';
+    document.body.style.overflow = '';
+  } else {
+    document.getElementById('pwerr').textContent = 'Incorrect password';
+    document.getElementById('pwinput').focus();
+  }
+}
+</script>
 
 <div class="header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
   <div>
