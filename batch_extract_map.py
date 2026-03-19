@@ -1772,9 +1772,21 @@ function exportCSV() {{
 
 // ── Refresh ──
 const REFRESH_API = 'http://localhost:8787';
+const IS_LOCAL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 let refreshPollTimer = null;
 
 function startRefresh() {{
+  if (!IS_LOCAL) {{
+    document.getElementById('refreshOverlay').classList.add('show');
+    document.getElementById('refreshTitle').textContent = 'Refresh not available here';
+    document.getElementById('refreshEstimate').innerHTML =
+      '<div style="color:var(--muted);margin-bottom:0.75rem">The refresh runs locally on your machine, not from the hosted dashboard.</div>' +
+      '<div style="margin-bottom:0.5rem">To refresh the data:</div>' +
+      '<code style="background:var(--card2);padding:0.5rem 0.75rem;border-radius:6px;display:block;color:var(--cyan);margin-bottom:0.75rem">python3 incremental_refresh.py</code>' +
+      '<div style="color:var(--dim);font-size:0.75rem">Then open <strong>http://localhost:8787</strong> in your browser to use the refresh button.</div>';
+    document.getElementById('refreshConfirmBtn').style.display = 'none';
+    return;
+  }}
   document.getElementById('refreshOverlay').classList.add('show');
   document.getElementById('refreshTitle').textContent = 'Checking for new permits...';
   document.getElementById('refreshEstimate').innerHTML = '<span style="color:var(--dim)">Probing Diavgeia API...</span>';
@@ -2089,6 +2101,7 @@ filterTable();
 document.getElementById('dateFromLabel').textContent = DATE_MIN;
 document.getElementById('dateToLabel').textContent   = DATE_MAX;
 document.getElementById('sliderRange').style.left  = '0%';
+if (!IS_LOCAL) document.getElementById('refreshBtn').title = 'Run python3 incremental_refresh.py locally to refresh data';
 document.getElementById('sliderRange').style.width = '100%';
 document.getElementById('dateFilterCount').textContent = TABLE.length.toLocaleString() + ' permits';
 
